@@ -340,7 +340,9 @@ export default function KanbanPage() {
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches
   )
+  const [kanbanViewportHeight, setKanbanViewportHeight] = useState<number | null>(null)
   const [topScrollbarWidth, setTopScrollbarWidth] = useState(0)
+  const kanbanSectionRef = useRef<HTMLElement | null>(null)
   const topScrollbarRef = useRef<HTMLDivElement | null>(null)
   const kanbanScrollerRef = useRef<HTMLDivElement | null>(null)
   const syncSourceRef = useRef<"top" | "main" | null>(null)
@@ -664,6 +666,27 @@ export default function KanbanPage() {
   }, [user?.id, isAdmin, adminBrokerFilter, creationDateFilter, iaStatusFilter, originFilter, loadKanban])
 
   useEffect(() => {
+    const updateKanbanViewportHeight = () => {
+      if (!kanbanSectionRef.current) {
+        return
+      }
+
+      const { top } = kanbanSectionRef.current.getBoundingClientRect()
+      const nextHeight = Math.max(320, Math.floor(window.innerHeight - top))
+      setKanbanViewportHeight(nextHeight)
+    }
+
+    updateKanbanViewportHeight()
+    const timeoutId = window.setTimeout(updateKanbanViewportHeight, 0)
+    window.addEventListener("resize", updateKanbanViewportHeight)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.removeEventListener("resize", updateKanbanViewportHeight)
+    }
+  }, [isDesktop, loading, stages.length, adminBrokerFilter, creationDateFilter, iaStatusFilter, originFilter])
+
+  useEffect(() => {
     const updateScrollbarWidth = () => {
       setTopScrollbarWidth(kanbanScrollerRef.current?.scrollWidth ?? 0)
     }
@@ -706,8 +729,8 @@ export default function KanbanPage() {
     topScrollbarRef.current.scrollLeft = kanbanScrollerRef.current.scrollLeft
   }
 
-  const activeLead = activeLeadId ? leads.find((lead) => lead.id === activeLeadId) ?? null : null
   const hasActiveFilters = adminBrokerFilter !== "" || creationDateFilter !== "all" || iaStatusFilter !== "all" || originFilter !== "all"
+  const activeLead = activeLeadId ? leads.find((lead) => lead.id === activeLeadId) ?? null : null
 
   const clearFilters = () => {
     setAdminBrokerFilter("")
@@ -828,7 +851,7 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100vh-6.5rem)] lg:overflow-hidden">
+    <div className="flex min-h-0 flex-col gap-6">
       <PageIntro
         badge="Funil operacional"
         badgeTone="emerald"
@@ -879,7 +902,11 @@ export default function KanbanPage() {
       ) : null}
 
       {!loading && stages.length > 0 ? (
-        <section className="flex h-full min-h-0 flex-1 flex-col space-y-3 overflow-hidden">
+        <section
+          ref={kanbanSectionRef}
+          className="flex h-full min-h-0 flex-1 flex-col space-y-3 overflow-hidden"
+          style={kanbanViewportHeight ? { height: `${kanbanViewportHeight}px` } : undefined}
+        >
           <div className="shrink-0 flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
