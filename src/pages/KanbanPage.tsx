@@ -343,8 +343,10 @@ export default function KanbanPage() {
     typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches
   )
   const [kanbanViewportHeight, setKanbanViewportHeight] = useState<number | null>(null)
+  const [columnsViewportHeight, setColumnsViewportHeight] = useState<number | null>(null)
   const [topScrollbarWidth, setTopScrollbarWidth] = useState(0)
   const kanbanSectionRef = useRef<HTMLElement | null>(null)
+  const kanbanHeaderRef = useRef<HTMLDivElement | null>(null)
   const topScrollbarRef = useRef<HTMLDivElement | null>(null)
   const kanbanScrollerRef = useRef<HTMLDivElement | null>(null)
   const syncSourceRef = useRef<"top" | "main" | null>(null)
@@ -676,6 +678,11 @@ export default function KanbanPage() {
       const { top } = kanbanSectionRef.current.getBoundingClientRect()
       const nextHeight = Math.max(320, Math.floor(window.innerHeight - top))
       setKanbanViewportHeight(nextHeight)
+
+      const headerHeight = kanbanHeaderRef.current?.offsetHeight ?? 0
+      const topScrollbarHeight = topScrollbarRef.current?.offsetHeight ?? 0
+      const nextColumnsHeight = Math.max(220, nextHeight - headerHeight - topScrollbarHeight - 12)
+      setColumnsViewportHeight(nextColumnsHeight)
     }
 
     updateKanbanViewportHeight()
@@ -909,7 +916,10 @@ export default function KanbanPage() {
           className="flex h-full min-h-0 flex-1 flex-col space-y-3 overflow-hidden"
           style={kanbanViewportHeight ? { height: `${kanbanViewportHeight}px` } : undefined}
         >
-          <div className="shrink-0 flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+          <div
+            ref={kanbanHeaderRef}
+            className="shrink-0 flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm"
+          >
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
               {isDesktop ? "Arraste os cards entre colunas ou deslize para ver todo o funil." : "Deslize para o lado para ver todo o funil."}
@@ -936,6 +946,7 @@ export default function KanbanPage() {
               <div
                 ref={kanbanScrollerRef}
                 className="min-h-0 h-full flex-1 overflow-x-auto overflow-y-hidden pb-2"
+                style={columnsViewportHeight ? { height: `${columnsViewportHeight}px` } : undefined}
                 onScroll={handleKanbanScroll}
               >
                 <div className="flex h-full min-h-0 min-w-max items-stretch gap-4">
