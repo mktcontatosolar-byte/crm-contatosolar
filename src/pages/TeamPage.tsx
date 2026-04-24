@@ -634,16 +634,19 @@ export default function TeamPage() {
                   return (
                     <div
                       key={member.id}
-                      className="rounded-[1.5rem] border border-border/60 bg-background/60 p-5"
+                      className="flex h-full flex-col rounded-[1.5rem] border border-border/60 bg-background/60 p-5"
                     >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 space-y-2">
                           <p className="text-base font-semibold text-foreground">{displayName(member)}</p>
-                          <p className="text-sm text-muted-foreground">{member.email || "Sem e-mail"}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mail className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{member.email || "Sem e-mail"}</span>
+                          </div>
                         </div>
 
                         <span
-                          className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium ${
+                          className={`inline-flex w-fit shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${
                             member.ativo
                               ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                               : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
@@ -670,17 +673,12 @@ export default function TeamPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{member.email || "Sem e-mail"}</span>
-                        </div>
-
-                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <div className="mt-5 border-t border-border/60 pt-4">
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                           <Button
                             type="button"
                             variant="outline"
-                            className="min-h-12 rounded-3xl"
+                            className="min-h-12 w-full rounded-3xl"
                             onClick={() => setBrokerForRedistribution(member)}
                           >
                             <RotateCcw className="mr-2 h-4 w-4" />
@@ -689,7 +687,7 @@ export default function TeamPage() {
                           <Button
                             type="button"
                             variant={member.ativo ? "outline" : "default"}
-                            className="min-h-12 rounded-3xl"
+                            className="min-h-12 w-full rounded-3xl"
                             disabled={toggleStatusMutation.isPending}
                             onClick={() => toggleStatusMutation.mutate(member)}
                           >
@@ -703,7 +701,7 @@ export default function TeamPage() {
                           <Button
                             type="button"
                             variant="destructive"
-                            className="min-h-12 rounded-3xl"
+                            className="min-h-12 w-full rounded-3xl"
                             disabled={deleteUserMutation.isPending}
                             onClick={() => requestDelete(member, assignedCount)}
                           >
