@@ -419,7 +419,7 @@ export default function MetricsPage() {
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Conversao para carteira</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Conversão para carteira</p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.conversionRate}%</p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Percentual de leads qualificados que já estão com corretor.
@@ -524,7 +524,7 @@ export default function MetricsPage() {
           <section>
             <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-xl">Ultimos leads recebidos</CardTitle>
+                <CardTitle className="text-xl">Últimos leads recebidos</CardTitle>
                 <CardDescription>
                   Entradas mais recentes da tabela <code>leads_lancamento</code>.
                 </CardDescription>

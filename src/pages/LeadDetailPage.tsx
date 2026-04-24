@@ -687,7 +687,7 @@ export default function LeadDetailPage() {
               <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
                 <CardHeader>
                   <CardTitle>Notas internas</CardTitle>
-                  <CardDescription>Registros visiveis apenas para a equipe.</CardDescription>
+                  <CardDescription>Registros visíveis apenas para a equipe.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {notes.length === 0 ? (
@@ -737,7 +737,7 @@ export default function LeadDetailPage() {
                     className="min-h-40 rounded-2xl text-sm"
                   />
                   <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                    <span>As notas ficam visiveis apenas para a equipe.</span>
+                    <span>As notas ficam visíveis apenas para a equipe.</span>
                     <span>{newNote.trim().length} caractere(s)</span>
                   </div>
                   <Button

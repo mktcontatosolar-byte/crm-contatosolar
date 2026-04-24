@@ -30,7 +30,7 @@ function withTimeout<T>(promise: PromiseLike<T>, ms = 8000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => {
-      window.setTimeout(() => reject(new Error("Timeout na requisicao")), ms)
+      window.setTimeout(() => reject(new Error("Timeout na requisição")), ms)
     }),
   ])
 }
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (error) {
-          console.error("Erro ao buscar sessao:", error)
+          console.error("Erro ao buscar sessão:", error)
           await syncAuthState(null)
           return
         }
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        console.error("Erro ao carregar sessao inicial:", error)
+        console.error("Erro ao carregar sessão inicial:", error)
         await syncAuthState(null)
       }
     }

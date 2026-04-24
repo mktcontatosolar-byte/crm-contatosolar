@@ -471,7 +471,7 @@ export default function LeadDetailModal({
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Ações operacionais</h2>
-                    <p className="text-sm text-muted-foreground">Controles rapidos de atendimento e funil.</p>
+                    <p className="text-sm text-muted-foreground">Controles rápidos de atendimento e funil.</p>
                   </div>
                 </div>
 
@@ -590,7 +590,7 @@ export default function LeadDetailModal({
                   <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                     <span>
                       {canAddNote
-                        ? "Notas ficam visiveis apenas para a equipe."
+                        ? "Notas ficam visíveis apenas para a equipe."
                         : "Você precisa ser admin ou corretor responsável para registrar notas."}
                     </span>
                     <span>{newNote.trim().length} caractere(s)</span>
