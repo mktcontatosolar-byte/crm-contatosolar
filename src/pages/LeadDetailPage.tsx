@@ -100,7 +100,7 @@ function DetailField({
   value: string
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+    <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
       <div className="flex items-start gap-3">
         <div className="rounded-2xl border border-border/60 bg-card/90 p-2">
           <Icon className="h-4 w-4 text-primary" />
@@ -116,10 +116,10 @@ function DetailField({
 
 function TabPanelSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <Card className="border border-border/60 bg-card/92 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
       <CardContent className="space-y-4 p-5 lg:p-6">
         {Array.from({ length: rows }).map((_, index) => (
-          <Skeleton key={index} className="h-20 w-full rounded-[1.5rem]" />
+          <Skeleton key={index} className="h-20 w-full rounded-2xl" />
         ))}
       </CardContent>
     </Card>
@@ -503,14 +503,14 @@ export default function LeadDetailPage() {
 
   return (
     <div className="space-y-5">
-      <Card className="sticky top-4 z-10 border border-border/60 bg-card/95 shadow-sm backdrop-blur">
+      <Card className="sticky top-4 z-10 rounded-[2rem] border border-border/60 bg-card/95 shadow-sm backdrop-blur">
         <CardContent className="space-y-4 p-4 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button
                 type="button"
                 variant="outline"
-                className="min-h-12 rounded-3xl px-4"
+                className="h-12 rounded-full px-4"
                 onClick={() => {
                   if (window.history.length > 1) {
                     navigate(-1)
@@ -574,7 +574,7 @@ export default function LeadDetailPage() {
           {loading ? (
             <TabPanelSkeleton rows={5} />
           ) : leadDetail ? (
-            <Card className="border border-border/60 bg-card/92 shadow-sm">
+            <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Dados principais</CardTitle>
                 <CardDescription>Contato, origem e contexto operacional deste lead.</CardDescription>
@@ -605,7 +605,7 @@ export default function LeadDetailPage() {
                     label="Última interação"
                     value={formatDateTime(leadDetail.last_interaction_at)}
                   />
-                  <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <p className="text-sm font-medium text-foreground">Corretor atribuído</p>
                     <div className="mt-3">
                       <Badge className="min-h-7 rounded-full px-3 text-sm">
@@ -649,7 +649,7 @@ export default function LeadDetailPage() {
               ].map((item) => {
                 const Icon = item.icon
                 return (
-                  <Card key={item.key} className="border border-border/60 bg-card/92 shadow-sm">
+                  <Card key={item.key} className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
                     <CardHeader>
                       <div className="flex items-center gap-3">
                         <div className="rounded-2xl border border-border/60 bg-background/70 p-2.5">
@@ -664,7 +664,7 @@ export default function LeadDetailPage() {
                     <CardFooter>
                       <Button
                         type="button"
-                        className="min-h-12 w-full rounded-3xl"
+                        className="h-12 w-full rounded-full"
                         variant={item.key === "toggle-ia" ? "default" : "outline"}
                         disabled={updating}
                         onClick={() => setPendingAction(item.key)}
@@ -683,8 +683,8 @@ export default function LeadDetailPage() {
           {loading ? (
             <TabPanelSkeleton rows={4} />
           ) : leadDetail ? (
-            <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-              <Card className="border border-border/60 bg-card/92 shadow-sm">
+            <div className="grid gap-4 xl:grid-cols-2">
+              <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
                 <CardHeader>
                   <CardTitle>Notas internas</CardTitle>
                   <CardDescription>Registros visiveis apenas para a equipe.</CardDescription>
@@ -697,7 +697,7 @@ export default function LeadDetailPage() {
                       {notes.map((note) => (
                         <div
                           key={note.id}
-                          className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4"
+                          className="rounded-2xl border border-border/60 bg-background/70 p-4"
                         >
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-sm font-medium text-foreground">
@@ -715,7 +715,7 @@ export default function LeadDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/60 bg-card/92 shadow-sm">
+              <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
                 <CardHeader>
                   <CardTitle>Nova nota</CardTitle>
                   <CardDescription>
@@ -734,7 +734,7 @@ export default function LeadDetailPage() {
                         : "Você não pode registrar nota neste lead"
                     }
                     onChange={(event) => setNewNote(event.target.value)}
-                    className="min-h-40 text-sm"
+                    className="min-h-40 rounded-2xl text-sm"
                   />
                   <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                     <span>As notas ficam visiveis apenas para a equipe.</span>
@@ -742,7 +742,7 @@ export default function LeadDetailPage() {
                   </div>
                   <Button
                     type="button"
-                    className="min-h-12 w-full rounded-3xl"
+                    className="h-12 w-full rounded-full"
                     disabled={!canAddNote || savingNote || newNote.trim().length === 0}
                     onClick={() => void saveNote()}
                   >
@@ -758,7 +758,7 @@ export default function LeadDetailPage() {
           {loading ? (
             <TabPanelSkeleton rows={4} />
           ) : leadDetail ? (
-            <Card className="border border-border/60 bg-card/92 shadow-sm">
+            <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Conversa</CardTitle>
                 <CardDescription>Atividades operacionais e histórico de mensagens deste lead.</CardDescription>
@@ -775,7 +775,7 @@ export default function LeadDetailPage() {
                   {activityQuery.isLoading ? (
                     <div className="space-y-3">
                       {Array.from({ length: 3 }).map((_, index) => (
-                        <Skeleton key={index} className="h-20 w-full rounded-[1.5rem]" />
+                        <Skeleton key={index} className="h-20 w-full rounded-2xl" />
                       ))}
                     </div>
                   ) : activities.length === 0 ? (
@@ -787,7 +787,7 @@ export default function LeadDetailPage() {
                         return (
                           <div
                             key={activity.id}
-                            className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4"
+                            className="rounded-2xl border border-border/60 bg-background/70 p-4"
                           >
                             <div className="flex items-start gap-3">
                               <div className="rounded-2xl border border-border/60 bg-card/90 p-2">
@@ -824,7 +824,7 @@ export default function LeadDetailPage() {
                     {messages.map((message) => (
                       <div
                         key={message.id}
-                        className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4"
+                        className="rounded-2xl border border-border/60 bg-background/70 p-4"
                       >
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex flex-wrap items-center gap-2">
@@ -864,14 +864,14 @@ export default function LeadDetailPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setPendingAction(null)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               disabled={!pendingAction || updating}
               onClick={() => {
                 if (pendingAction) {

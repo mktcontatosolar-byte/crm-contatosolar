@@ -64,7 +64,7 @@ function SidebarNav({
                 type="button"
                 onClick={() => onNavigate(item.path)}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-12 shrink-0 items-center gap-3 rounded-[1.25rem] border px-4 py-3 text-left text-sm transition-all focus-visible:border-sidebar-ring focus-visible:ring-3 focus-visible:ring-sidebar-ring/30 lg:w-full ${
+                className={`flex min-h-12 shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-all focus-visible:border-sidebar-ring focus-visible:ring-3 focus-visible:ring-sidebar-ring/30 lg:w-full ${
                   isActive
                     ? "border-sidebar-primary/20 bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                     : "border-transparent bg-transparent text-sidebar-foreground/80 hover:border-sidebar-border/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

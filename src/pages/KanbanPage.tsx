@@ -139,13 +139,13 @@ function LeadCardBody({
           </div>
 
           <div className="flex items-center gap-1">
-            <div className="hidden cursor-grab rounded-2xl border border-border/60 bg-background/80 p-2 text-muted-foreground md:flex">
+            <div className="hidden cursor-grab rounded-xl border border-border/60 bg-background/80 p-2 text-muted-foreground md:flex">
               <GripVertical className="h-4 w-4" />
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="rounded-2xl">
+                <Button type="button" variant="ghost" size="icon-sm" className="rounded-xl">
                   <MoreVertical className="h-4 w-4" />
                   <span className="sr-only">Abrir ações do lead</span>
                 </Button>
@@ -213,7 +213,7 @@ function LeadCardBody({
         <Button
           type="button"
           variant="outline"
-          className="w-full rounded-3xl"
+          className="h-11 w-full rounded-full"
           onClick={() => onOpenDetails(lead.id)}
         >
           Ver detalhes
@@ -258,7 +258,7 @@ function DraggableLeadCard({
         transform: transform ? CSS.Translate.toString(transform) : undefined,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="border border-border/60 bg-card shadow-sm transition-shadow data-[dragging=true]:shadow-lg"
+      className="rounded-3xl border border-border/60 bg-card shadow-sm transition-shadow data-[dragging=true]:shadow-lg"
       data-dragging={isDragging}
       {...attributes}
       {...listeners}
@@ -299,7 +299,7 @@ function DroppableStageColumn({
     <div
       ref={setNodeRef}
       className={[
-        "flex min-h-[32rem] w-[320px] shrink-0 flex-col rounded-[1.75rem] border bg-card/70 shadow-sm backdrop-blur transition-colors xl:w-[340px]",
+        "flex min-h-[32rem] w-[320px] shrink-0 flex-col rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors xl:w-[340px]",
         isOver ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60",
       ].join(" ")}
     >
@@ -792,21 +792,21 @@ export default function KanbanPage() {
           isAdmin ? "Todos os leads atribuídos, organizados por etapa." : "Leads atribuídos a você, organizados por etapa."
         }
         aside={
-          <div className="rounded-[1.75rem] border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
+          <div className="rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <p className="text-xs uppercase tracking-[0.18em]">Leads ativos</p>
             <p className="mt-1 text-2xl font-semibold text-foreground">{leads.length}</p>
           </div>
         }
       />
 
-      <div className="hidden rounded-[1.5rem] border border-border/60 bg-card/90 p-4 shadow-sm md:block">
+      <div className="hidden rounded-3xl border border-border/60 bg-card/90 p-4 shadow-sm md:block">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Filtros do quadro</p>
             <p className="text-sm text-muted-foreground">Refine corretor, criação, IA e origem sem sair do Kanban.</p>
           </div>
           {hasActiveFilters ? (
-            <Button type="button" variant="outline" className="min-h-11 rounded-3xl" onClick={clearFilters}>
+            <Button type="button" variant="outline" className="h-11 rounded-full" onClick={clearFilters}>
               <X className="h-4 w-4" />
               Limpar filtros
             </Button>
@@ -816,7 +816,7 @@ export default function KanbanPage() {
       </div>
 
       <div className="md:hidden">
-        <Button type="button" variant="outline" className="min-h-12 w-full rounded-3xl" onClick={() => setMobileFiltersOpen(true)}>
+        <Button type="button" variant="outline" className="h-12 w-full rounded-full" onClick={() => setMobileFiltersOpen(true)}>
           <Filter className="h-4 w-4" />
           Filtros
           {hasActiveFilters ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">ativos</span> : null}
@@ -835,7 +835,7 @@ export default function KanbanPage() {
 
       {!loading && stages.length > 0 ? (
         <section className="space-y-3">
-          <div className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+          <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
               {isDesktop ? "Arraste os cards entre colunas ou deslize para ver todo o funil." : "Deslize para o lado para ver todo o funil."}
@@ -921,14 +921,14 @@ export default function KanbanPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setPendingRedistribution(null)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               disabled={!pendingRedistribution || redistributeLeadMutation.isPending}
               onClick={() =>
                 pendingRedistribution ? void redistributeLeadMutation.mutateAsync(pendingRedistribution) : undefined
@@ -941,7 +941,7 @@ export default function KanbanPage() {
       </Dialog>
 
       <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <SheetContent side="bottom" className="md:hidden">
+        <SheetContent side="bottom" className="rounded-t-[2rem] md:hidden">
           <SheetHeader className="pr-10">
             <SheetTitle>Filtros do Kanban</SheetTitle>
             <SheetDescription>Ajuste corretor, criação, IA e origem para encontrar os leads certos.</SheetDescription>
@@ -949,7 +949,7 @@ export default function KanbanPage() {
           <div className="space-y-4 pt-4">
             {filterFields}
             {hasActiveFilters ? (
-              <Button type="button" variant="outline" className="min-h-12 w-full rounded-3xl" onClick={clearFilters}>
+              <Button type="button" variant="outline" className="h-12 w-full rounded-full" onClick={clearFilters}>
                 Limpar filtros
               </Button>
             ) : null}

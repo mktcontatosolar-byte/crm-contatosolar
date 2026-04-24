@@ -18,7 +18,7 @@ export default function StatCard({
   helperText,
 }: StatCardProps) {
   return (
-    <Card className="border border-border/60 bg-card/92 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
       <CardHeader className="pb-0">
         <div className="flex items-center justify-between gap-4">
           <CardDescription className="text-sm uppercase tracking-[0.14em]">{label}</CardDescription>

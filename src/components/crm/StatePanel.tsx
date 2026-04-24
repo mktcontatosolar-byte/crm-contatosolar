@@ -21,7 +21,7 @@ export default function StatePanel({
 }: StatePanelProps) {
   return (
     <div
-      className={`rounded-[1.5rem] border px-4 py-4 text-sm ${toneClasses[tone]} ${
+      className={`rounded-3xl border px-4 py-4 text-sm ${toneClasses[tone]} ${
         dashed ? "border-dashed" : ""
       } ${centered ? "text-center" : ""} backdrop-blur`}
     >

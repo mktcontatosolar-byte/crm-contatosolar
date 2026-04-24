@@ -103,7 +103,7 @@ function getLeadStatus(hasBrokers: boolean) {
 
 function PoolLeadCardSkeleton() {
   return (
-    <Card className="border border-border/60 bg-card/90 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start gap-4">
           <Skeleton className="h-14 w-14 rounded-full" />
@@ -113,7 +113,7 @@ function PoolLeadCardSkeleton() {
             <Skeleton className="h-4 w-24" />
           </div>
         </div>
-        <Skeleton className="h-11 w-full rounded-3xl" />
+        <Skeleton className="h-11 w-full rounded-full" />
       </CardContent>
     </Card>
   )
@@ -121,7 +121,7 @@ function PoolLeadCardSkeleton() {
 
 function PoolDetailSkeleton() {
   return (
-    <Card className="border border-border/60 bg-card/90 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
       <CardContent className="space-y-5 p-5 lg:p-6">
         <div className="flex items-start gap-4">
           <Skeleton className="h-16 w-16 rounded-full" />
@@ -131,14 +131,14 @@ function PoolDetailSkeleton() {
           </div>
         </div>
         <div className="grid gap-3">
-          <Skeleton className="h-16 w-full rounded-3xl" />
-          <Skeleton className="h-16 w-full rounded-3xl" />
-          <Skeleton className="h-16 w-full rounded-3xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
         </div>
-        <Skeleton className="h-12 w-full rounded-3xl" />
+        <Skeleton className="h-12 w-full rounded-full" />
         <div className="grid gap-3 sm:grid-cols-2">
-          <Skeleton className="h-12 w-full rounded-3xl" />
-          <Skeleton className="h-12 w-full rounded-3xl" />
+          <Skeleton className="h-12 w-full rounded-full" />
+          <Skeleton className="h-12 w-full rounded-full" />
         </div>
       </CardContent>
     </Card>
@@ -342,7 +342,7 @@ export default function PoolLeadsPage() {
   }
 
   const detailContent = selectedLead ? (
-    <Card className="border border-border/60 bg-card/92 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
       <CardHeader className="border-b border-border/60 pb-5">
         <div className="flex items-start gap-4">
           <Avatar size="lg" className="h-14 w-14">
@@ -392,7 +392,7 @@ export default function PoolLeadsPage() {
             return (
               <div
                 key={item.label}
-                className="flex min-h-14 items-start gap-3 rounded-[1.5rem] border border-border/60 bg-background/70 px-4 py-3"
+                className="flex min-h-14 items-start gap-3 rounded-2xl border border-border/60 bg-background/70 px-4 py-3"
               >
                 <div className="mt-0.5 rounded-2xl border border-border/60 bg-card/90 p-2">
                   <Icon className="h-4 w-4 text-primary" />
@@ -451,7 +451,7 @@ export default function PoolLeadsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <Button
             type="button"
-            className="h-12 w-full rounded-3xl"
+            className="h-12 w-full rounded-full"
             disabled={!selectedBrokerId || assigningLeadId === selectedLead.id || corretores.length === 0}
             onClick={() =>
               selectedBrokerId
@@ -468,7 +468,7 @@ export default function PoolLeadsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 w-full rounded-3xl"
+                  className="h-12 w-full rounded-full"
                   onClick={() => navigate(`/leads/${selectedLead.id}`)}
                 >
                   Ver detalhes
@@ -483,7 +483,7 @@ export default function PoolLeadsPage() {
       </CardContent>
     </Card>
   ) : (
-    <Card className="border border-dashed border-border/60 bg-card/90 shadow-sm">
+    <Card className="rounded-3xl border border-dashed border-border/60 bg-card/90 shadow-sm">
       <CardContent className="flex min-h-[28rem] flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="rounded-full border border-border/60 bg-background/70 p-4">
           <UserRoundSearch className="h-6 w-6 text-primary" />
@@ -513,7 +513,7 @@ export default function PoolLeadsPage() {
             ].map((item) => {
               const Icon = item.icon
               return (
-                <Card key={item.label} className="border border-border/60 bg-background/70 shadow-none">
+                <Card key={item.label} className="rounded-3xl border border-border/60 bg-background/70 shadow-none">
                   <CardContent className="flex min-h-24 items-center gap-4 p-4">
                     <div className="rounded-2xl border border-border/60 bg-card/90 p-3">
                       <Icon className="h-5 w-5 text-primary" />
@@ -568,7 +568,7 @@ export default function PoolLeadsPage() {
                       handleLeadSelection(lead.id)
                     }
                   }}
-                  className={`cursor-pointer border bg-card/92 shadow-sm transition-all ${
+                  className={`cursor-pointer rounded-3xl border bg-card/92 shadow-sm transition-all ${
                     isSelected
                       ? "border-primary ring-2 ring-primary/20"
                       : "border-border/60 hover:border-primary/40"
@@ -586,7 +586,7 @@ export default function PoolLeadsPage() {
                             <p className="text-base font-semibold text-foreground">
                               {leadDisplayName(lead)}
                             </p>
-                            <Badge className={`min-h-7 px-3 text-sm ${leadStatus.className}`}>
+                            <Badge className={`min-h-7 rounded-full px-3 text-sm ${leadStatus.className}`}>
                               {leadStatus.label}
                             </Badge>
                           </div>
@@ -605,7 +605,7 @@ export default function PoolLeadsPage() {
                           <Button
                             type="button"
                             variant={isSelected ? "default" : "outline"}
-                            className="h-12 w-full rounded-3xl"
+                            className="h-12 w-full rounded-full"
                             onClick={(event) => {
                               event.stopPropagation()
                               handleLeadSelection(lead.id)
@@ -649,7 +649,7 @@ export default function PoolLeadsPage() {
       </Sheet>
 
       <Dialog open={Boolean(pendingAssignment)} onOpenChange={(open) => !open && setPendingAssignment(null)}>
-        <DialogContent showCloseButton>
+        <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>Confirmar atribuição</DialogTitle>
             <DialogDescription>
@@ -659,12 +659,12 @@ export default function PoolLeadsPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" className="h-12 rounded-3xl" onClick={() => setPendingAssignment(null)}>
+            <Button type="button" variant="outline" className="h-12 rounded-full" onClick={() => setPendingAssignment(null)}>
               Cancelar
             </Button>
             <Button
               type="button"
-              className="h-12 rounded-3xl"
+              className="h-12 rounded-full"
               disabled={!pendingAssignment || assigningLeadId === pendingAssignment.lead.id}
               onClick={() =>
                 pendingAssignment

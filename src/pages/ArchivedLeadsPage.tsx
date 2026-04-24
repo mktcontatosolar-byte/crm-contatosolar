@@ -68,20 +68,20 @@ async function fetchArchivedLeads(): Promise<ArchivedLead[]> {
 
 function ArchivedLeadSkeleton() {
   return (
-    <Card className="border border-border/60 bg-card/92 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
       <CardContent className="space-y-4 p-5">
         <div className="space-y-2">
           <Skeleton className="h-6 w-44 rounded-2xl" />
           <Skeleton className="h-4 w-60 rounded-2xl" />
         </div>
         <div className="grid gap-3 md:grid-cols-3">
-          <Skeleton className="h-16 w-full rounded-[1.5rem]" />
-          <Skeleton className="h-16 w-full rounded-[1.5rem]" />
-          <Skeleton className="h-16 w-full rounded-[1.5rem]" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
         </div>
         <div className="flex gap-3">
-          <Skeleton className="h-12 w-full rounded-3xl md:w-40" />
-          <Skeleton className="h-12 w-full rounded-3xl md:w-40" />
+          <Skeleton className="h-12 w-full rounded-full md:w-40" />
+          <Skeleton className="h-12 w-full rounded-full md:w-40" />
         </div>
       </CardContent>
     </Card>
@@ -179,7 +179,7 @@ export default function ArchivedLeadsPage() {
             {headerStats.map((item) => {
               const Icon = item.icon
               return (
-                <Card key={item.label} className="border border-border/60 bg-background/70 shadow-none">
+                <Card key={item.label} className="rounded-3xl border border-border/60 bg-background/70 shadow-none">
                   <CardContent className="flex min-h-24 items-center gap-4 p-4">
                     <div className="rounded-2xl border border-border/60 bg-card/90 p-3">
                       <Icon className="h-5 w-5 text-primary" />
@@ -221,7 +221,7 @@ export default function ArchivedLeadsPage() {
       {!archivedLeadsQuery.isLoading && archivedLeads.length > 0 ? (
         <div className="grid gap-4">
           {archivedLeads.map((lead) => (
-            <Card key={lead.id} className="border border-border/60 bg-card/92 shadow-sm">
+            <Card key={lead.id} className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader className="gap-3">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
@@ -234,7 +234,7 @@ export default function ArchivedLeadsPage() {
 
               <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <div className="flex items-start gap-3">
                       <div className="rounded-2xl border border-border/60 bg-card/90 p-2">
                         <CalendarClock className="h-4 w-4 text-primary" />
@@ -248,7 +248,7 @@ export default function ArchivedLeadsPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <div className="flex items-start gap-3">
                       <div className="rounded-2xl border border-border/60 bg-card/90 p-2">
                         <UserRound className="h-4 w-4 text-primary" />
@@ -260,7 +260,7 @@ export default function ArchivedLeadsPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <div className="flex items-start gap-3">
                       <div className="rounded-2xl border border-border/60 bg-card/90 p-2">
                         <CalendarClock className="h-4 w-4 text-primary" />
@@ -276,7 +276,7 @@ export default function ArchivedLeadsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Button
                     type="button"
-                    className="min-h-12 rounded-3xl sm:w-auto"
+                    className="h-12 rounded-full sm:w-auto"
                     onClick={() => setPendingLead(lead)}
                   >
                     <ArchiveRestore className="mr-2 h-4 w-4" />
@@ -285,7 +285,7 @@ export default function ArchivedLeadsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="min-h-12 rounded-3xl sm:w-auto"
+                    className="h-12 rounded-full sm:w-auto"
                     onClick={() => navigate(`/leads/${lead.id}`)}
                   >
                     Ver detalhes
@@ -298,7 +298,7 @@ export default function ArchivedLeadsPage() {
       ) : null}
 
       <Dialog open={Boolean(pendingLead)} onOpenChange={(open) => !open && setPendingLead(null)}>
-        <DialogContent showCloseButton>
+        <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>Desarquivar lead?</DialogTitle>
             <DialogDescription>
@@ -312,14 +312,14 @@ export default function ArchivedLeadsPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setPendingLead(null)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               disabled={!pendingLead || unarchiveLeadMutation.isPending}
               onClick={() =>
                 pendingLead

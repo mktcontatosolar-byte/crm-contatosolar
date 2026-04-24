@@ -365,7 +365,7 @@ export default function TeamPage() {
         title="Equipe"
         description="Gerencie acessos do time comercial, acompanhe carga por corretor e execute criação ou exclusão por backend seguro."
         aside={
-          <div className="grid grid-cols-2 gap-3 rounded-[1.75rem] border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
+          <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
               <p className="text-xs uppercase tracking-[0.18em]">Admins</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{summary.admins.length}</p>
@@ -424,7 +424,7 @@ export default function TeamPage() {
       </section>
 
       <section>
-        <Card className="border border-border/60 bg-card/90 shadow-sm">
+        <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <UserPlus className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
@@ -473,7 +473,7 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.45fr_0.45fr]">
+              <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="team-password">Senha inicial</Label>
                   <Input
@@ -512,7 +512,7 @@ export default function TeamPage() {
               {createUserMutation.isError ? (
                 <p
                   role="alert"
-                  className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300"
+                  className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300"
                 >
                   {createUserMutation.error instanceof Error
                     ? createUserMutation.error.message
@@ -522,7 +522,7 @@ export default function TeamPage() {
 
               <Button
                 type="submit"
-                className="h-11 w-full rounded-3xl"
+                className="h-11 w-full rounded-full"
                 disabled={createUserMutation.isPending}
               >
                 {createUserMutation.isPending ? "Criando acesso..." : "Criar acesso"}
@@ -532,8 +532,8 @@ export default function TeamPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.7fr_1.3fr]">
-        <Card className="border border-border/60 bg-card/90 shadow-sm">
+      <section className="grid gap-4 xl:grid-cols-12">
+        <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm xl:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Crown className="h-5 w-5 text-violet-600 dark:text-violet-300" />
@@ -552,7 +552,7 @@ export default function TeamPage() {
               ? summary.admins.map((member) => (
                   <div
                     key={member.id}
-                    className="min-h-[240px] rounded-[1.5rem] border border-border/60 bg-background/60 p-4"
+                    className="min-h-[240px] rounded-3xl border border-border/60 bg-background/60 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
@@ -576,7 +576,7 @@ export default function TeamPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="rounded-3xl"
+                          className="rounded-full"
                           disabled={toggleStatusMutation.isPending}
                           onClick={() => toggleStatusMutation.mutate(member)}
                         >
@@ -590,7 +590,7 @@ export default function TeamPage() {
                           type="button"
                           variant="destructive"
                           size="sm"
-                          className="rounded-3xl"
+                          className="rounded-full"
                           disabled={deleteUserMutation.isPending}
                           onClick={() => requestDelete(member, 0)}
                         >
@@ -609,7 +609,7 @@ export default function TeamPage() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/60 bg-card/90 shadow-sm">
+        <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm xl:col-span-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Users className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
@@ -634,7 +634,7 @@ export default function TeamPage() {
                   return (
                     <div
                       key={member.id}
-                      className="flex h-full min-h-[240px] min-w-[380px] flex-col overflow-hidden rounded-[1.5rem] border border-border/60 bg-background/60 p-6"
+                      className="flex h-full min-h-[240px] flex-col overflow-hidden rounded-3xl border border-border/60 bg-background/60 p-6"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 space-y-2">
@@ -680,7 +680,7 @@ export default function TeamPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="min-h-12 w-full rounded-3xl"
+                            className="h-12 w-full rounded-full"
                             onClick={() => setBrokerForRedistribution(member)}
                           >
                             <RotateCcw className="mr-2 h-4 w-4" />
@@ -691,7 +691,7 @@ export default function TeamPage() {
                             <Button
                               type="button"
                               variant={member.ativo ? "outline" : "default"}
-                              className="min-h-12 w-full rounded-3xl"
+                              className="h-12 w-full rounded-full"
                               disabled={toggleStatusMutation.isPending}
                               onClick={() => toggleStatusMutation.mutate(member)}
                             >
@@ -705,7 +705,7 @@ export default function TeamPage() {
                             <Button
                               type="button"
                               variant="destructive"
-                              className="min-h-12 w-full rounded-3xl"
+                              className="h-12 w-full rounded-full"
                               disabled={deleteUserMutation.isPending}
                               onClick={() => requestDelete(member, assignedCount)}
                             >
@@ -731,7 +731,7 @@ export default function TeamPage() {
       </section>
 
       <Dialog open={Boolean(brokerForRedistribution)} onOpenChange={(open) => !open && setBrokerForRedistribution(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>
               Redistribuir leads de {brokerForRedistribution ? displayName(brokerForRedistribution) : "corretor"}
@@ -743,7 +743,7 @@ export default function TeamPage() {
 
           {brokerForRedistribution ? (
             <div className="space-y-3">
-              <div className="rounded-[1.5rem] border border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
                 {leadsForSelectedBroker.length} lead(s) ativo(s) atribuídos a este corretor.
               </div>
 
@@ -754,7 +754,7 @@ export default function TeamPage() {
                   {leadsForSelectedBroker.map((lead) => (
                     <div
                       key={lead.id}
-                      className="flex flex-col gap-3 rounded-[1.5rem] border border-border/60 bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
+                      className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground">{displayLeadName(lead)}</p>
@@ -766,7 +766,7 @@ export default function TeamPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="min-h-12 w-full rounded-3xl md:w-auto"
+                        className="h-12 w-full rounded-full md:w-auto"
                         onClick={() => setPendingRedistribution({ lead, broker: brokerForRedistribution })}
                       >
                         Devolver para Pool
@@ -782,7 +782,7 @@ export default function TeamPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setBrokerForRedistribution(null)}
             >
               Fechar
@@ -792,7 +792,7 @@ export default function TeamPage() {
       </Dialog>
 
       <Dialog open={Boolean(pendingDeletion)} onOpenChange={(open) => !open && setPendingDeletion(null)}>
-        <DialogContent showCloseButton>
+        <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>
               Excluir {pendingDeletion ? displayName(pendingDeletion.member) : "usuário"}?
@@ -806,7 +806,7 @@ export default function TeamPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setPendingDeletion(null)}
               disabled={deleteUserMutation.isPending}
             >
@@ -815,7 +815,7 @@ export default function TeamPage() {
             <Button
               type="button"
               variant="destructive"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => void confirmDeletion()}
               disabled={deleteUserMutation.isPending}
             >
@@ -826,7 +826,7 @@ export default function TeamPage() {
       </Dialog>
 
       <Dialog open={Boolean(pendingRedistribution)} onOpenChange={(open) => !open && setPendingRedistribution(null)}>
-        <DialogContent showCloseButton>
+        <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>Devolver lead para o Pool?</DialogTitle>
             <DialogDescription>
@@ -842,14 +842,14 @@ export default function TeamPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               onClick={() => setPendingRedistribution(null)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              className="min-h-12 rounded-3xl"
+              className="h-12 rounded-full"
               disabled={!pendingRedistribution || redistributeLeadMutation.isPending}
               onClick={() =>
                 pendingRedistribution

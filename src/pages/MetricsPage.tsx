@@ -52,7 +52,7 @@ function ChartPanel({
   children: React.ReactNode
 }) {
   return (
-    <Card className="overflow-hidden border border-border/60 bg-card/90 shadow-sm">
+    <Card className="overflow-hidden rounded-3xl border border-border/60 bg-card/90 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -80,7 +80,7 @@ function DonutChart({
   const dashOffset = circumference * (1 - progress)
 
   return (
-    <div className="flex items-center gap-4 rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-background/70 p-4">
       <div className="relative h-24 w-24 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <circle cx="50" cy="50" r={radius} fill="none" stroke="color-mix(in oklab, var(--muted) 85%, transparent)" strokeWidth="10" />
@@ -163,7 +163,7 @@ function MetricSkeleton() {
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="h-36 animate-pulse rounded-4xl border border-border/60 bg-card/80 shadow-sm"
+          className="h-36 animate-pulse rounded-3xl border border-border/60 bg-card/80 shadow-sm"
         />
       ))}
     </div>
@@ -311,7 +311,7 @@ export default function MetricsPage() {
         title="Métricas do CRM"
         description="Panorama em tempo real do funil comercial, distribuição de leads e produtividade do time."
         aside={
-          <div className="grid grid-cols-2 gap-3 rounded-[1.75rem] border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
+          <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
               <p className="text-xs uppercase tracking-[0.18em]">Leads mapeados</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{leads.length}</p>
@@ -368,12 +368,12 @@ export default function MetricsPage() {
             ))}
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="grid gap-4 xl:grid-cols-2">
             <ChartPanel
               title="Pulso do funil"
               description="Leitura visual da distribuição atual por etapa, em uma curva compacta para bater o olho."
             >
-              <div className="rounded-[1.75rem] border border-border/60 bg-background/70 p-4">
+              <div className="rounded-3xl border border-border/60 bg-background/70 p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
                   <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                   Etapas ativas do kanban
@@ -383,7 +383,7 @@ export default function MetricsPage() {
                   {metrics.leadsByStage.map((stage) => (
                     <div
                       key={stage.id}
-                      className="rounded-[1.25rem] border border-border/60 bg-card/90 px-4 py-3"
+                      className="rounded-2xl border border-border/60 bg-card/90 px-4 py-3"
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -418,14 +418,14 @@ export default function MetricsPage() {
                 />
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Conversao para carteira</p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.conversionRate}%</p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Percentual de leads qualificados que já estão com corretor.
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Taxa de arquivo</p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.archiveRate}%</p>
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -436,89 +436,93 @@ export default function MetricsPage() {
             </ChartPanel>
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-            <ChartPanel
-              title="Leads por etapa"
-              description="Leads atribuídos e não arquivados agrupados pelas etapas atuais do kanban."
-            >
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Layers3 className="h-4 w-4 text-sky-600 dark:text-sky-300" />
-                  Distribuição atual do quadro
-                </div>
-                {metrics.leadsByStage.length === 0 ? (
-                  <StatePanel dashed>
-                    Nenhuma etapa cadastrada em <code>kanban_stages</code>.
-                  </StatePanel>
-                ) : (
-                  metrics.leadsByStage.map((stage) => {
-                    const maxCount = Math.max(1, ...metrics.leadsByStage.map((item) => item.total))
-                    const width = `${Math.max(8, (stage.total / maxCount) * 100)}%`
+          <section className="grid gap-4 xl:grid-cols-12">
+            <div className="xl:col-span-7">
+              <ChartPanel
+                title="Leads por etapa"
+                description="Leads atribuídos e não arquivados agrupados pelas etapas atuais do kanban."
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Layers3 className="h-4 w-4 text-sky-600 dark:text-sky-300" />
+                    Distribuição atual do quadro
+                  </div>
+                  {metrics.leadsByStage.length === 0 ? (
+                    <StatePanel dashed>
+                      Nenhuma etapa cadastrada em <code>kanban_stages</code>.
+                    </StatePanel>
+                  ) : (
+                    metrics.leadsByStage.map((stage) => {
+                      const maxCount = Math.max(1, ...metrics.leadsByStage.map((item) => item.total))
+                      const width = `${Math.max(8, (stage.total / maxCount) * 100)}%`
 
-                    return (
-                      <div key={stage.id} className="space-y-2">
-                        <div className="flex items-center justify-between gap-4 text-sm">
-                          <div className="flex items-center gap-2 text-foreground">
-                            <span
-                              className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: stage.cor || "#38bdf8" }}
-                            />
-                            <span>{stage.nome}</span>
+                      return (
+                        <div key={stage.id} className="space-y-2">
+                          <div className="flex items-center justify-between gap-4 text-sm">
+                            <div className="flex items-center gap-2 text-foreground">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: stage.cor || "#38bdf8" }}
+                              />
+                              <span>{stage.nome}</span>
+                            </div>
+                            <span className="text-muted-foreground">{stage.total}</span>
                           </div>
-                          <span className="text-muted-foreground">{stage.total}</span>
+                          <div className="h-2.5 rounded-full bg-muted/60">
+                            <div
+                              className="h-2.5 rounded-full"
+                              style={{ width, backgroundColor: stage.cor || "#38bdf8" }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2.5 rounded-full bg-muted/60">
-                          <div
-                            className="h-2.5 rounded-full"
-                            style={{ width, backgroundColor: stage.cor || "#38bdf8" }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </ChartPanel>
+                      )
+                    })
+                  )}
+                </div>
+              </ChartPanel>
+            </div>
 
-            <ChartPanel
-              title="Leads por corretor"
-              description="Distribuição atual de leads ativos já atribuídos."
-            >
-              <div className="space-y-3">
-                {metrics.leadsByBroker.length === 0 ? (
-                  <StatePanel dashed>Nenhum corretor ativo encontrado.</StatePanel>
-                ) : (
-                  metrics.leadsByBroker.map((broker) => {
-                    const maxBrokerCount = Math.max(1, ...metrics.leadsByBroker.map((item) => item.total))
-                    const width = `${Math.max(10, (broker.total / maxBrokerCount) * 100)}%`
+            <div className="xl:col-span-5">
+              <ChartPanel
+                title="Leads por corretor"
+                description="Distribuição atual de leads ativos já atribuídos."
+              >
+                <div className="space-y-3">
+                  {metrics.leadsByBroker.length === 0 ? (
+                    <StatePanel dashed>Nenhum corretor ativo encontrado.</StatePanel>
+                  ) : (
+                    metrics.leadsByBroker.map((broker) => {
+                      const maxBrokerCount = Math.max(1, ...metrics.leadsByBroker.map((item) => item.total))
+                      const width = `${Math.max(10, (broker.total / maxBrokerCount) * 100)}%`
 
-                    return (
-                      <div
-                        key={broker.id}
-                        className="rounded-[1.25rem] border border-border/60 bg-background/60 px-4 py-3"
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className="truncate text-sm font-medium text-foreground">{broker.nome}</span>
-                          <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-sm text-muted-foreground">
-                            {broker.total}
-                          </span>
+                      return (
+                        <div
+                          key={broker.id}
+                          className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3"
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <span className="truncate text-sm font-medium text-foreground">{broker.nome}</span>
+                            <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-sm text-muted-foreground">
+                              {broker.total}
+                            </span>
+                          </div>
+                          <div className="h-2.5 rounded-full bg-muted/60">
+                            <div
+                              className="h-2.5 rounded-full bg-[linear-gradient(90deg,var(--color-chart-2),var(--color-chart-1))]"
+                              style={{ width }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2.5 rounded-full bg-muted/60">
-                          <div
-                            className="h-2.5 rounded-full bg-[linear-gradient(90deg,var(--color-chart-2),var(--color-chart-1))]"
-                            style={{ width }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </ChartPanel>
+                      )
+                    })
+                  )}
+                </div>
+              </ChartPanel>
+            </div>
           </section>
 
           <section>
-            <Card className="border border-border/60 bg-card/90 shadow-sm">
+            <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-xl">Ultimos leads recebidos</CardTitle>
                 <CardDescription>
@@ -532,7 +536,7 @@ export default function MetricsPage() {
                   metrics.recentLeads.map((lead) => (
                     <div
                       key={lead.id}
-                      className="rounded-[1.5rem] border border-border/60 bg-background/60 p-4"
+                      className="rounded-2xl border border-border/60 bg-background/60 p-4"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">

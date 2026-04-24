@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 
+import { Badge } from "@/components/ui/badge"
+
 type PageIntroProps = {
   badge: string
   title: string
@@ -26,11 +28,12 @@ export default function PageIntro({
     <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/92 p-6 shadow-sm backdrop-blur sm:p-8">
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-3">
-          <span
-            className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-medium ${badgeToneClasses[badgeTone]}`}
+          <Badge
+            variant="outline"
+            className={`h-6 rounded-full px-3 text-xs font-medium ${badgeToneClasses[badgeTone]}`}
           >
             {badge}
-          </span>
+          </Badge>
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               {title}

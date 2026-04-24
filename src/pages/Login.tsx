@@ -42,9 +42,9 @@ export default function Login() {
         <div className="absolute inset-x-0 top-0 h-48 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--chart-1)_16%,transparent),transparent)]" />
       </div>
 
-      <Card className="relative w-full max-w-md border border-border/60 bg-card/94 shadow-xl backdrop-blur">
+      <Card className="relative w-full max-w-md rounded-3xl border border-border/60 bg-card/94 shadow-xl backdrop-blur">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.75rem] border border-border/60 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--primary)_22%,transparent),color-mix(in_oklab,var(--chart-1)_22%,transparent))] text-foreground">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border/60 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--primary)_22%,transparent),color-mix(in_oklab,var(--chart-1)_22%,transparent))] text-foreground">
             <span className="text-lg font-semibold">GS</span>
           </div>
           <div className="space-y-2">
@@ -99,7 +99,7 @@ export default function Login() {
               </p>
             ) : null}
 
-            <Button type="submit" className="h-11 w-full rounded-3xl" disabled={loading}>
+            <Button type="submit" className="h-11 w-full rounded-full" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
