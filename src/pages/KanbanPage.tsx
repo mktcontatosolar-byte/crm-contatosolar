@@ -344,13 +344,8 @@ export default function KanbanPage() {
   )
   const [kanbanViewportHeight, setKanbanViewportHeight] = useState<number | null>(null)
   const [columnsViewportHeight, setColumnsViewportHeight] = useState<number | null>(null)
-  const [topScrollbarWidth, setTopScrollbarWidth] = useState(0)
   const kanbanSectionRef = useRef<HTMLElement | null>(null)
   const kanbanHeaderRef = useRef<HTMLDivElement | null>(null)
-  const topScrollbarRef = useRef<HTMLDivElement | null>(null)
-  const kanbanScrollerRef = useRef<HTMLDivElement | null>(null)
-  const columnsRowRef = useRef<HTMLDivElement | null>(null)
-  const syncSourceRef = useRef<"top" | "main" | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -681,8 +676,7 @@ export default function KanbanPage() {
       setKanbanViewportHeight(nextHeight)
 
       const headerHeight = kanbanHeaderRef.current?.offsetHeight ?? 0
-      const topScrollbarHeight = topScrollbarRef.current?.offsetHeight ?? 0
-      const nextColumnsHeight = Math.max(260, nextHeight - headerHeight - topScrollbarHeight - 4)
+      const nextColumnsHeight = Math.max(260, nextHeight - headerHeight - 12)
       setColumnsViewportHeight(nextColumnsHeight)
     }
 
@@ -695,69 +689,6 @@ export default function KanbanPage() {
       window.removeEventListener("resize", updateKanbanViewportHeight)
     }
   }, [isDesktop, loading, stages.length, adminBrokerFilter, creationDateFilter, iaStatusFilter, originFilter])
-
-  useEffect(() => {
-    const updateScrollbarWidth = () => {
-      const contentWidth = columnsRowRef.current?.scrollWidth ?? 0
-      const viewportWidth = kanbanScrollerRef.current?.clientWidth ?? 0
-      setTopScrollbarWidth(Math.max(contentWidth, viewportWidth))
-    }
-
-    updateScrollbarWidth()
-    const timeoutId = window.setTimeout(updateScrollbarWidth, 0)
-    const resizeObserver =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(() => {
-            updateScrollbarWidth()
-          })
-
-    if (resizeObserver) {
-      if (kanbanScrollerRef.current) {
-        resizeObserver.observe(kanbanScrollerRef.current)
-      }
-
-      if (columnsRowRef.current) {
-        resizeObserver.observe(columnsRowRef.current)
-      }
-    }
-
-    window.addEventListener("resize", updateScrollbarWidth)
-
-    return () => {
-      window.clearTimeout(timeoutId)
-      resizeObserver?.disconnect()
-      window.removeEventListener("resize", updateScrollbarWidth)
-    }
-  }, [stages.length, leads.length, isDesktop])
-
-  const handleTopScrollbarScroll = () => {
-    if (!topScrollbarRef.current || !kanbanScrollerRef.current) {
-      return
-    }
-
-    if (syncSourceRef.current === "main") {
-      syncSourceRef.current = null
-      return
-    }
-
-    syncSourceRef.current = "top"
-    kanbanScrollerRef.current.scrollLeft = topScrollbarRef.current.scrollLeft
-  }
-
-  const handleKanbanScroll = () => {
-    if (!topScrollbarRef.current || !kanbanScrollerRef.current) {
-      return
-    }
-
-    if (syncSourceRef.current === "top") {
-      syncSourceRef.current = null
-      return
-    }
-
-    syncSourceRef.current = "main"
-    topScrollbarRef.current.scrollLeft = kanbanScrollerRef.current.scrollLeft
-  }
 
   const hasActiveFilters = adminBrokerFilter !== "" || creationDateFilter !== "all" || iaStatusFilter !== "all" || originFilter !== "all"
   const activeLead = activeLeadId ? leads.find((lead) => lead.id === activeLeadId) ?? null : null
@@ -934,12 +865,12 @@ export default function KanbanPage() {
       {!loading && stages.length > 0 ? (
         <section
           ref={kanbanSectionRef}
-          className="flex h-full min-h-0 flex-1 flex-col space-y-3 overflow-hidden"
+          className="grid h-full min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden"
           style={kanbanViewportHeight ? { height: `${kanbanViewportHeight}px` } : undefined}
         >
           <div
             ref={kanbanHeaderRef}
-            className="shrink-0 flex items-center justify-between gap-4 rounded-3xl bg-card/65 px-4 py-3 text-sm text-muted-foreground"
+            className="flex items-center justify-between gap-4 rounded-3xl bg-card/65 px-4 py-3 text-sm text-muted-foreground"
           >
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
@@ -948,14 +879,9 @@ export default function KanbanPage() {
           </div>
 
           <div
-            ref={topScrollbarRef}
-            className="shrink-0 w-full overflow-x-scroll overflow-y-hidden rounded-full bg-card/65 px-1 py-1"
-            onScroll={handleTopScrollbarScroll}
+            className="min-h-0 overflow-hidden rounded-[2rem] border border-border/60 bg-card/55 shadow-sm"
+            style={columnsViewportHeight ? { height: `${columnsViewportHeight}px` } : undefined}
           >
-            <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
-          </div>
-
-          <div className="flex min-h-0 flex-1 overflow-hidden">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -965,12 +891,9 @@ export default function KanbanPage() {
               onDragCancel={handleDragCancel}
             >
               <div
-                ref={kanbanScrollerRef}
-                className="h-full min-h-0 w-full flex-1 overflow-x-auto overflow-y-hidden pb-2"
-                style={columnsViewportHeight ? { height: `${columnsViewportHeight}px` } : undefined}
-                onScroll={handleKanbanScroll}
+                className="h-full min-h-0 overflow-x-auto overflow-y-hidden px-3 py-3 pb-4"
               >
-                <div ref={columnsRowRef} className="inline-flex h-full min-h-0 min-w-max items-stretch gap-4 pr-4">
+                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 pr-4">
                   {stages.map((stage) => {
                     const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 
