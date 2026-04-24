@@ -295,7 +295,7 @@ function DroppableStageColumn({
     <div
       ref={setNodeRef}
       className={[
-        "flex h-full min-h-[28rem] w-[320px] shrink-0 flex-col overflow-hidden rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors md:min-h-0 xl:w-[340px]",
+        "flex h-full min-h-[28rem] w-[320px] shrink-0 self-stretch flex-col overflow-hidden rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors md:min-h-0 xl:w-[340px]",
         isOver ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60",
       ].join(" ")}
     >
@@ -311,7 +311,7 @@ function DroppableStageColumn({
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-3">{children}</div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{children}</div>
     </div>
   )
 }
@@ -933,7 +933,7 @@ export default function KanbanPage() {
             >
               <div
                 ref={kanbanScrollerRef}
-                className="h-full overflow-x-auto overflow-y-hidden pb-2"
+                className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-2"
                 onScroll={handleKanbanScroll}
               >
                 <div className="flex h-full min-h-0 min-w-max items-stretch gap-4">
