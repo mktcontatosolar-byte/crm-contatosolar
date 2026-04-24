@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format, formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { useNavigate, useParams } from "react-router-dom"
@@ -14,8 +14,10 @@ import {
   Mail,
   MessageSquareText,
   Phone,
+  Pencil,
   RefreshCw,
   RotateCcw,
+  Trash2,
   UserCheck,
   UserRound,
 } from "lucide-react"
@@ -51,6 +53,7 @@ import { cn } from "@/lib/utils"
 import type { ChatMessage, LeadActivity, LeadDetail, LeadNote, Profile } from "@/types"
 
 type LeadAction = "toggle-ia" | "return-pool" | "archive"
+type LeadNoteWithAuthor = LeadNote & { authorProfile: Profile | null }
 
 function formatDateTime(dateString: string | null | undefined) {
   if (!dateString) {
@@ -272,13 +275,15 @@ export default function LeadDetailPage() {
   const [leadDetail, setLeadDetail] = useState<LeadDetail | null>(null)
   const [assignedBroker, setAssignedBroker] = useState<Profile | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [notes, setNotes] = useState<Array<LeadNote & { authorProfile: Profile | null }>>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
   const [newNote, setNewNote] = useState("")
   const [error, setError] = useState("")
   const [pendingAction, setPendingAction] = useState<LeadAction | null>(null)
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteContent, setEditingNoteContent] = useState("")
+  const [pendingDeleteNote, setPendingDeleteNote] = useState<LeadNoteWithAuthor | null>(null)
 
   const canAddNote = Boolean(
     user &&
@@ -297,9 +302,15 @@ export default function LeadDetailPage() {
     enabled: Boolean(id),
   })
 
-  const loadNotes = useCallback(async () => {
+  const notesQuery = useQuery({
+    queryKey: ["lead-notes", id],
+    queryFn: () => loadNotes(),
+    enabled: Boolean(id),
+  })
+
+  const loadNotes = useCallback(async (): Promise<LeadNoteWithAuthor[]> => {
     if (!id) {
-      return
+      return []
     }
 
     const { data: notesData, error: notesError } = await supabase
@@ -316,13 +327,10 @@ export default function LeadDetailPage() {
     const authorIds = [...new Set(fetchedNotes.map((note) => note.author_id))]
 
     if (authorIds.length === 0) {
-      setNotes(
-        fetchedNotes.map((note) => ({
-          ...note,
-          authorProfile: null,
-        }))
-      )
-      return
+      return fetchedNotes.map((note) => ({
+        ...note,
+        authorProfile: null,
+      }))
     }
 
     const { data: authorsData, error: authorsError } = await supabase
@@ -338,19 +346,16 @@ export default function LeadDetailPage() {
       ((authorsData ?? []) as Profile[]).map((profile) => [profile.id, profile])
     )
 
-    setNotes(
-      fetchedNotes.map((note) => ({
-        ...note,
-        authorProfile: authorsById.get(note.author_id) ?? null,
-      }))
-    )
+    return fetchedNotes.map((note) => ({
+      ...note,
+      authorProfile: authorsById.get(note.author_id) ?? null,
+    }))
   }, [id])
 
   const loadDetails = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!id) {
       setError("Lead não encontrado.")
       setLoading(false)
-      return
     }
 
     try {
@@ -373,7 +378,6 @@ export default function LeadDetailPage() {
         setLeadDetail(null)
         setAssignedBroker(null)
         setMessages([])
-        setNotes([])
         return
       }
 
@@ -410,11 +414,10 @@ export default function LeadDetailPage() {
             message: unknown
             created_at: string
           }>,
-          id
+          id!
         )
       )
       setAssignedBroker((brokerResult.data as Profile | null) ?? null)
-      await loadNotes()
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar detalhe do lead:", loadError)
@@ -422,7 +425,7 @@ export default function LeadDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [detailSelect, id, loadNotes])
+  }, [detailSelect, id])
 
   async function updateLead(
     values: Partial<Pick<LeadDetail, "ia_paused" | "arquivado" | "corretor_id" | "assumed_at" | "stage_id">>,
@@ -519,7 +522,7 @@ export default function LeadDetailPage() {
       }
 
       setNewNote("")
-      await loadNotes()
+      await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
       setError("")
       toast.success("Nota interna salva com sucesso.")
     } catch (saveError) {
@@ -537,6 +540,52 @@ export default function LeadDetailPage() {
       setSavingNote(false)
     }
   }
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ noteId, content }: { noteId: string; content: string }) => {
+      const { error: updateError } = await supabase
+        .from("lead_notes")
+        .update({ content })
+        .eq("id", noteId)
+
+      if (updateError) {
+        throw updateError
+      }
+    },
+    onSuccess: async () => {
+      setEditingNoteId(null)
+      setEditingNoteContent("")
+      await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
+      toast.success("Nota atualizada com sucesso.")
+    },
+    onError: (updateError) => {
+      const message = getSupabaseErrorMessage(updateError, "NÃ£o foi possÃ­vel atualizar a nota.")
+      setError(message)
+      toast.error(message)
+    },
+  })
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      const { error: deleteError } = await supabase.from("lead_notes").delete().eq("id", noteId)
+
+      if (deleteError) {
+        throw deleteError
+      }
+    },
+    onSuccess: async () => {
+      setPendingDeleteNote(null)
+      setEditingNoteId(null)
+      setEditingNoteContent("")
+      await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
+      toast.success("Nota excluÃ­da com sucesso.")
+    },
+    onError: (deleteError) => {
+      const message = getSupabaseErrorMessage(deleteError, "NÃ£o foi possÃ­vel excluir a nota.")
+      setError(message)
+      toast.error(message)
+    },
+  })
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -574,7 +623,7 @@ export default function LeadDetailPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "lead_notes", filter: `lead_id=eq.${id}` },
         () => {
-          void loadDetails({ silent: true })
+          void queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
         }
       )
       .subscribe()
@@ -583,10 +632,25 @@ export default function LeadDetailPage() {
       window.clearTimeout(timeoutId)
       void supabase.removeChannel(channel)
     }
-  }, [id, leadSessionId, loadDetails])
+  }, [id, leadSessionId, loadDetails, queryClient])
 
   const pageTitle = leadDisplayName(leadDetail)
   const activities = activityQuery.data ?? []
+  const notes = notesQuery.data ?? []
+
+  function canManageNote(note: LeadNoteWithAuthor) {
+    return Boolean(user && (isAdmin || note.author_id === user.id))
+  }
+
+  function startEditingNote(note: LeadNoteWithAuthor) {
+    setEditingNoteId(note.id)
+    setEditingNoteContent(note.content)
+  }
+
+  function cancelEditingNote() {
+    setEditingNoteId(null)
+    setEditingNoteContent("")
+  }
 
   const statusBadges = useMemo(() => {
     if (!leadDetail) {
@@ -846,7 +910,7 @@ export default function LeadDetailPage() {
         </TabsContent>
 
         <TabsContent value="notas">
-          {loading ? (
+          {loading || notesQuery.isLoading ? (
             <TabPanelSkeleton rows={4} />
           ) : leadDetail ? (
             <div className="grid gap-4 xl:grid-cols-2">
@@ -865,15 +929,80 @@ export default function LeadDetailPage() {
                           key={note.id}
                           className="rounded-2xl border border-border/60 bg-background/70 p-4"
                         >
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-sm font-medium text-foreground">
-                              {note.authorProfile?.nome || note.authorProfile?.email || "Autor desconhecido"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{formatDateTime(note.created_at)}</p>
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                {note.authorProfile?.nome || note.authorProfile?.email || "Autor desconhecido"}
+                              </p>
+                              <p className="text-sm text-muted-foreground">{formatDateTime(note.created_at)}</p>
+                            </div>
+
+                            {canManageNote(note) ? (
+                              <div className="flex items-center gap-2 self-end sm:self-start">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  className="h-10 w-10 rounded-full"
+                                  disabled={updateNoteMutation.isPending || deleteNoteMutation.isPending}
+                                  onClick={() => startEditingNote(note)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  <span className="sr-only">Editar nota</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  className="h-10 w-10 rounded-full text-destructive hover:text-destructive"
+                                  disabled={updateNoteMutation.isPending || deleteNoteMutation.isPending}
+                                  onClick={() => setPendingDeleteNote(note)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Excluir nota</span>
+                                </Button>
+                              </div>
+                            ) : null}
                           </div>
-                          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
-                            {note.content}
-                          </p>
+
+                          {editingNoteId === note.id ? (
+                            <div className="mt-3 space-y-3">
+                              <Textarea
+                                value={editingNoteContent}
+                                onChange={(event) => setEditingNoteContent(event.target.value)}
+                                className="min-h-32 rounded-2xl text-sm"
+                                disabled={updateNoteMutation.isPending}
+                              />
+                              <div className="flex flex-col gap-2 sm:flex-row">
+                                <Button
+                                  type="button"
+                                  className="h-12 rounded-full sm:w-auto"
+                                  disabled={updateNoteMutation.isPending || editingNoteContent.trim().length === 0}
+                                  onClick={() =>
+                                    void updateNoteMutation.mutateAsync({
+                                      noteId: note.id,
+                                      content: editingNoteContent.trim(),
+                                    })
+                                  }
+                                >
+                                  {updateNoteMutation.isPending ? "Salvando..." : "Salvar"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="h-12 rounded-full sm:w-auto"
+                                  disabled={updateNoteMutation.isPending}
+                                  onClick={cancelEditingNote}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
+                              {note.content}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1081,6 +1210,41 @@ export default function LeadDetailPage() {
                 : pendingAction
                   ? actionCopy[pendingAction].confirmLabel
                   : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(pendingDeleteNote)} onOpenChange={(open) => !open && setPendingDeleteNote(null)}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Excluir nota?</DialogTitle>
+            <DialogDescription>
+              {pendingDeleteNote
+                ? `A nota de ${pendingDeleteNote.authorProfile?.nome || pendingDeleteNote.authorProfile?.email || "autor desconhecido"} serÃ¡ removida permanentemente.`
+                : "Confirme a exclusÃ£o desta nota interna."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 rounded-full"
+              onClick={() => setPendingDeleteNote(null)}
+              disabled={deleteNoteMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="h-12 rounded-full"
+              disabled={!pendingDeleteNote || deleteNoteMutation.isPending}
+              onClick={() =>
+                pendingDeleteNote ? void deleteNoteMutation.mutateAsync(pendingDeleteNote.id) : undefined
+              }
+            >
+              {deleteNoteMutation.isPending ? "Excluindo..." : "Confirmar exclusÃ£o"}
             </Button>
           </DialogFooter>
         </DialogContent>
