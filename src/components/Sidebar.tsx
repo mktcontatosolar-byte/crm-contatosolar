@@ -79,7 +79,9 @@ function SidebarNav({
         </div>
       </nav>
 
-      <div className={`${mobile ? "mt-5 border-t border-sidebar-border/70 pt-5" : "border-t border-sidebar-border/70 p-4 sm:p-5 lg:mt-auto"}`}>
+      <div
+        className={`${mobile ? "mt-5 border-t border-sidebar-border/70 pt-5" : "border-t border-sidebar-border/70 p-4 sm:p-5 lg:mt-auto"}`}
+      >
         <div className="mb-4 rounded-[1.5rem] border border-sidebar-border/70 bg-sidebar-accent/80 p-4">
           <p className="truncate text-sm font-medium">{profileName}</p>
 
@@ -165,7 +167,6 @@ export default function Sidebar() {
               </div>
               <div>
                 <p className="text-lg font-semibold tracking-tight">CRM Lançamento</p>
-                <p className="text-sm text-sidebar-foreground/70">Operação comercial em azul escuro e laranja</p>
               </div>
             </div>
 
