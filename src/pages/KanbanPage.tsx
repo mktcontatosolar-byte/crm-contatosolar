@@ -20,10 +20,10 @@ import { Filter, GripVertical, MoreVertical, RotateCcw, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
-import PageIntro from "@/components/crm/PageIntro"
 import StatePanel from "@/components/crm/StatePanel"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -85,15 +85,28 @@ function leadDisplayName(lead: KanbanLead) {
   return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
-function formatDateTime(dateString: string | null) {
-  if (!dateString) {
-    return "Sem interação"
-  }
+function normalizeOrigin(origin: string | null | undefined) {
+  return (origin || "").trim().toLowerCase()
+}
 
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(dateString))
+function originBadgeClasses(origin: string | null | undefined) {
+  switch (normalizeOrigin(origin)) {
+    case "instagram":
+      return "border-pink-500/20 bg-pink-500/10 text-pink-700 dark:text-pink-300"
+    case "facebook":
+      return "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+    case "google":
+      return "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+    case "direto":
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+    default:
+      return "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:text-slate-300"
+  }
+}
+
+function originBadgeLabel(origin: string | null | undefined) {
+  const normalized = normalizeOrigin(origin)
+  return normalized ? normalized[0].toUpperCase() + normalized.slice(1) : "Sem origem"
 }
 
 function stageForLead(lead: KanbanLead, stages: KanbanStage[]) {
@@ -133,9 +146,14 @@ function LeadCardBody({
     <>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="text-base text-foreground">{leadDisplayName(lead)}</CardTitle>
-            <CardDescription>{lead.telefone_contato || "Telefone não informado"}</CardDescription>
+          <div className="min-w-0 space-y-2">
+            <CardTitle className="truncate text-[15px] font-semibold text-foreground">
+              {leadDisplayName(lead)}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">{lead.telefone_contato || "Telefone não informado"}</p>
+            <Badge variant="outline" className={`h-6 rounded-full px-2.5 text-[11px] font-medium ${originBadgeClasses(lead.origem)}`}>
+              {originBadgeLabel(lead.origem)}
+            </Badge>
           </div>
 
           <div className="flex items-center gap-1">
@@ -162,12 +180,7 @@ function LeadCardBody({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p className="break-words">{lead.email || "E-mail não informado"}</p>
-          <p>Última interação: {formatDateTime(lead.last_interaction_at)}</p>
-        </div>
-
+      <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex min-h-6 flex-wrap gap-2">
           {tags.map((tag) => (
             <span
@@ -206,14 +219,17 @@ function LeadCardBody({
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full rounded-full"
-          onClick={() => onOpenDetails(lead.id)}
-        >
-          Ver detalhes
-        </Button>
+        <div className="mt-auto">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 w-full rounded-full"
+            onClick={() => onOpenDetails(lead.id)}
+          >
+            Ver detalhes
+          </Button>
+        </div>
       </CardContent>
     </>
   )
@@ -254,7 +270,7 @@ function DraggableLeadCard({
         transform: transform ? CSS.Translate.toString(transform) : undefined,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="rounded-3xl border border-border/60 bg-card shadow-sm transition-shadow data-[dragging=true]:shadow-lg"
+      className="flex min-h-[176px] rounded-[1.5rem] border border-border/60 bg-card shadow-sm transition-shadow data-[dragging=true]:shadow-lg"
       data-dragging={isDragging}
       {...attributes}
       {...listeners}
@@ -295,7 +311,7 @@ function DroppableStageColumn({
     <div
       ref={setNodeRef}
       className={[
-        "grid h-full min-h-[28rem] w-[320px] shrink-0 self-stretch grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors md:min-h-0 xl:w-[340px]",
+        "grid h-full min-h-[28rem] min-w-[300px] shrink-0 self-stretch grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[1.75rem] border bg-card/80 shadow-sm backdrop-blur transition-colors md:min-h-0 md:w-[300px] xl:w-[320px]",
         isOver ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60",
       ].join(" ")}
     >
@@ -675,8 +691,7 @@ export default function KanbanPage() {
       const nextHeight = Math.max(320, Math.floor(window.innerHeight - top))
       setKanbanViewportHeight(nextHeight)
 
-      const headerHeight = kanbanHeaderRef.current?.offsetHeight ?? 0
-      const nextColumnsHeight = Math.max(260, nextHeight - headerHeight - 12)
+      const nextColumnsHeight = Math.max(260, nextHeight)
       setColumnsViewportHeight(nextColumnsHeight)
     }
 
@@ -702,12 +717,12 @@ export default function KanbanPage() {
   }
 
   const filterFields = (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className={`grid gap-4 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
       {isAdmin ? (
         <div className="space-y-2">
           <Label htmlFor="kanban-corretor-filter">Corretor</Label>
           <SelectRoot value={adminBrokerFilter || "all"} onValueChange={(value) => setAdminBrokerFilter(value === "all" ? "" : value)}>
-            <SelectTrigger id="kanban-corretor-filter" className="min-h-12">
+            <SelectTrigger id="kanban-corretor-filter" className="min-h-11 rounded-2xl bg-background/80">
               <SelectValue placeholder="Todos os corretores" />
             </SelectTrigger>
             <SelectContent>
@@ -725,7 +740,7 @@ export default function KanbanPage() {
       <div className="space-y-2">
         <Label htmlFor="kanban-created-filter">Data de criação</Label>
         <SelectRoot value={creationDateFilter} onValueChange={(value) => setCreationDateFilter(value as CreationDateFilter)}>
-          <SelectTrigger id="kanban-created-filter" className="min-h-12">
+          <SelectTrigger id="kanban-created-filter" className="min-h-11 rounded-2xl bg-background/80">
             <SelectValue placeholder="Todas as datas" />
           </SelectTrigger>
           <SelectContent>
@@ -740,7 +755,7 @@ export default function KanbanPage() {
       <div className="space-y-2">
         <Label htmlFor="kanban-ia-filter">Status da IA</Label>
         <SelectRoot value={iaStatusFilter} onValueChange={(value) => setIaStatusFilter(value as IAStatusFilter)}>
-          <SelectTrigger id="kanban-ia-filter" className="min-h-12">
+          <SelectTrigger id="kanban-ia-filter" className="min-h-11 rounded-2xl bg-background/80">
             <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
@@ -754,7 +769,7 @@ export default function KanbanPage() {
       <div className="space-y-2">
         <Label htmlFor="kanban-origin-filter">Origem</Label>
         <SelectRoot value={originFilter} onValueChange={setOriginFilter}>
-          <SelectTrigger id="kanban-origin-filter" className="min-h-12">
+          <SelectTrigger id="kanban-origin-filter" className="min-h-11 rounded-2xl bg-background/80">
             <SelectValue placeholder="Todas as origens" />
           </SelectTrigger>
           <SelectContent>
@@ -812,36 +827,31 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-6">
-      <PageIntro
-        badge="Funil operacional"
-        badgeTone="emerald"
-        title="Meu Kanban"
-        description={
-          isAdmin ? "Todos os leads atribuídos, organizados por etapa." : "Leads atribuídos a você, organizados por etapa."
-        }
-        aside={
-          <div className="rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
-            <p className="text-xs uppercase tracking-[0.18em]">Leads ativos</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">{leads.length}</p>
-          </div>
-        }
-      />
-
-      <div className="hidden rounded-3xl border border-border/60 bg-card/90 p-4 shadow-sm md:block">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">Filtros do quadro</p>
-            <p className="text-sm text-muted-foreground">Refine corretor, criação, IA e origem sem sair do Kanban.</p>
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">Meu Kanban</h1>
+            <Badge
+              variant="outline"
+              className="h-7 rounded-full border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+            >
+              Funil operacional
+            </Badge>
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm text-muted-foreground">
+              <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em]">Leads ativos</span>
+              <span className="text-sm font-semibold text-foreground">{leads.length}</span>
+            </div>
           </div>
           {hasActiveFilters ? (
-            <Button type="button" variant="outline" className="h-11 rounded-full" onClick={clearFilters}>
+            <Button type="button" variant="ghost" className="h-9 rounded-full px-3 text-muted-foreground" onClick={clearFilters}>
               <X className="h-4 w-4" />
               Limpar filtros
             </Button>
           ) : null}
         </div>
-        <div className="mt-4">{filterFields}</div>
+
+        <div className="hidden md:block">{filterFields}</div>
       </div>
 
       <div className="md:hidden">
@@ -865,21 +875,12 @@ export default function KanbanPage() {
       {!loading && stages.length > 0 ? (
         <section
           ref={kanbanSectionRef}
-          className="grid h-full min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden"
+          className="grid h-full min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden"
           style={kanbanViewportHeight ? { height: `${kanbanViewportHeight}px` } : undefined}
         >
           <div
             ref={kanbanHeaderRef}
-            className="flex items-center justify-between gap-4 rounded-3xl bg-card/65 px-4 py-3 text-sm text-muted-foreground"
-          >
-            <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
-            <p className="hidden sm:block">
-              {isDesktop ? "Arraste os cards entre colunas ou deslize para ver todo o funil." : "Deslize para o lado para ver todo o funil."}
-            </p>
-          </div>
-
-          <div
-            className="min-h-0 overflow-hidden rounded-[2rem] border border-border/60 bg-card/55 shadow-sm"
+            className="min-h-0 overflow-hidden"
             style={columnsViewportHeight ? { height: `${columnsViewportHeight}px` } : undefined}
           >
             <DndContext
@@ -890,10 +891,8 @@ export default function KanbanPage() {
               onDragEnd={handleDragEnd}
               onDragCancel={handleDragCancel}
             >
-              <div
-                className="h-full min-h-0 overflow-x-auto overflow-y-hidden px-3 py-3 pb-4"
-              >
-                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 pr-4">
+              <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden">
+                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 px-1">
                   {stages.map((stage) => {
                     const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 
