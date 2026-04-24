@@ -634,7 +634,7 @@ export default function TeamPage() {
                   return (
                     <div
                       key={member.id}
-                      className="flex h-full min-w-[320px] flex-col overflow-hidden rounded-[1.5rem] border border-border/60 bg-background/60 p-6"
+                      className="flex h-full min-w-[380px] flex-col overflow-hidden rounded-[1.5rem] border border-border/60 bg-background/60 p-6"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 space-y-2">
@@ -656,7 +656,7 @@ export default function TeamPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="mt-4 grid grid-cols-3 gap-3">
                         <div className="min-w-0 rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Leads ativos</p>
                           <p className="mt-2 text-2xl font-semibold text-foreground">{assignedCount}</p>
@@ -669,7 +669,9 @@ export default function TeamPage() {
                         </div>
                         <div className="min-w-0 rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Desde</p>
-                          <p className="mt-2 text-sm font-medium text-foreground">{formatDate(member.created_at)}</p>
+                          <p className="mt-2 whitespace-nowrap text-sm font-medium text-foreground">
+                            {formatDate(member.created_at)}
+                          </p>
                         </div>
                       </div>
 
