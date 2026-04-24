@@ -860,7 +860,7 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-6">
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
       <PageIntro
         badge="Funil operacional"
         badgeTone="emerald"
