@@ -674,7 +674,7 @@ export default function TeamPage() {
                       </div>
 
                       <div className="mt-5 border-t border-border/60 pt-4">
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="flex flex-col gap-3">
                           <Button
                             type="button"
                             variant="outline"
@@ -684,32 +684,35 @@ export default function TeamPage() {
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Redistribuir leads
                           </Button>
-                          <Button
-                            type="button"
-                            variant={member.ativo ? "outline" : "default"}
-                            className="min-h-12 w-full rounded-3xl"
-                            disabled={toggleStatusMutation.isPending}
-                            onClick={() => toggleStatusMutation.mutate(member)}
-                          >
-                            {toggleStatusMutation.isPending &&
-                            toggleStatusMutation.variables?.id === member.id
-                              ? "Atualizando..."
-                              : member.ativo
-                                ? "Inativar"
-                                : "Reativar"}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            className="min-h-12 w-full rounded-3xl"
-                            disabled={deleteUserMutation.isPending}
-                            onClick={() => requestDelete(member, assignedCount)}
-                          >
-                            {deleteUserMutation.isPending &&
-                            deleteUserMutation.variables?.member.id === member.id
-                              ? "Excluindo..."
-                              : "Excluir"}
-                          </Button>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Button
+                              type="button"
+                              variant={member.ativo ? "outline" : "default"}
+                              className="min-h-12 w-full rounded-3xl"
+                              disabled={toggleStatusMutation.isPending}
+                              onClick={() => toggleStatusMutation.mutate(member)}
+                            >
+                              {toggleStatusMutation.isPending &&
+                              toggleStatusMutation.variables?.id === member.id
+                                ? "Atualizando..."
+                                : member.ativo
+                                  ? "Inativar"
+                                  : "Reativar"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              className="min-h-12 w-full rounded-3xl"
+                              disabled={deleteUserMutation.isPending}
+                              onClick={() => requestDelete(member, assignedCount)}
+                            >
+                              {deleteUserMutation.isPending &&
+                              deleteUserMutation.variables?.member.id === member.id
+                                ? "Excluindo..."
+                                : "Excluir"}
+                            </Button>
+                          </div>
                         </div>
                       </div>
 
