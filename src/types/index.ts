@@ -98,6 +98,7 @@ export type LeadActivity = {
 export type LeadDetail = Pick<
   Lead,
   | 'id'
+  | 'remotejid'
   | 'nome_completo'
   | 'email'
   | 'telefone_contato'

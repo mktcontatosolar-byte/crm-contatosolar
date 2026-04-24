@@ -90,6 +90,108 @@ function getInitials(value: string) {
     .join("")
 }
 
+function extractMessageContent(message: unknown): string {
+  if (typeof message === "string") {
+    return message
+  }
+
+  if (!message || typeof message !== "object") {
+    return ""
+  }
+
+  const candidate = message as {
+    content?: unknown
+    text?: unknown
+    kwargs?: { content?: unknown }
+    data?: { content?: unknown }
+  }
+
+  const directContent = candidate.content
+  if (typeof directContent === "string") {
+    return directContent
+  }
+
+  if (Array.isArray(directContent)) {
+    return directContent
+      .map((item) => {
+        if (typeof item === "string") {
+          return item
+        }
+
+        if (item && typeof item === "object" && "text" in item) {
+          return typeof item.text === "string" ? item.text : ""
+        }
+
+        return ""
+      })
+      .filter(Boolean)
+      .join("\n")
+  }
+
+  if (typeof candidate.text === "string") {
+    return candidate.text
+  }
+
+  if (typeof candidate.kwargs?.content === "string") {
+    return candidate.kwargs.content
+  }
+
+  if (typeof candidate.data?.content === "string") {
+    return candidate.data.content
+  }
+
+  return ""
+}
+
+function extractMessageRole(message: unknown): ChatMessage["role"] {
+  if (!message || typeof message !== "object") {
+    return "bot"
+  }
+
+  const candidate = message as {
+    role?: unknown
+    type?: unknown
+    constructor?: unknown
+    id?: unknown
+  }
+
+  const roleValue = typeof candidate.role === "string" ? candidate.role.toLowerCase() : ""
+  const typeValue = typeof candidate.type === "string" ? candidate.type.toLowerCase() : ""
+  const constructorValue =
+    typeof candidate.constructor === "string" ? candidate.constructor.toLowerCase() : ""
+  const idValue = Array.isArray(candidate.id)
+    ? candidate.id.map((part) => String(part).toLowerCase()).join(" ")
+    : ""
+
+  const roleHint = [roleValue, typeValue, constructorValue, idValue].join(" ")
+
+  return roleHint.includes("human") || roleHint.includes("user") ? "user" : "bot"
+}
+
+function mapN8nMessages(
+  rows: Array<{
+    id: string
+    session_id: string
+    message: unknown
+    created_at: string
+  }>,
+  leadId: string
+): ChatMessage[] {
+  return rows
+    .map((row) => {
+      const content = extractMessageContent(row.message).trim()
+
+      return {
+        id: row.id,
+        lead_id: leadId,
+        role: extractMessageRole(row.message),
+        content,
+        created_at: row.created_at,
+      }
+    })
+    .filter((row) => row.content.length > 0)
+}
+
 function DetailField({
   icon: Icon,
   label,
@@ -148,10 +250,11 @@ export default function LeadDetailPage() {
       leadDetail &&
       (isAdmin || (leadDetail.corretor_id !== null && leadDetail.corretor_id === user.id))
   )
+  const leadSessionId = leadDetail?.remotejid ?? null
 
   const homePath = isAdmin ? "/" : "/kanban"
   const detailSelect =
-    "id,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,assumed_at,stage_id,arquivado,ia_paused,campanha,origem,outra_info,created_at,first_response_at,last_interaction_at"
+    "id,remotejid,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,assumed_at,stage_id,arquivado,ia_paused,campanha,origem,outra_info,created_at,first_response_at,last_interaction_at"
 
   const activityQuery = useQuery({
     queryKey: ["lead-activity", id],
@@ -240,12 +343,6 @@ export default function LeadDetailPage() {
       const detail = leadData as LeadDetail
       setLeadDetail(detail)
 
-      const messagesPromise = supabase
-        .from("chat_history")
-        .select("id,lead_id,role,content,created_at")
-        .eq("lead_id", id)
-        .order("created_at", { ascending: true })
-
       const brokerPromise = detail.corretor_id
         ? supabase
             .from("profiles")
@@ -253,6 +350,14 @@ export default function LeadDetailPage() {
             .eq("id", detail.corretor_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null })
+
+      const messagesPromise = detail.remotejid
+        ? supabase
+            .from("n8n_chat_histories_sdr")
+            .select("id,session_id,message,created_at")
+            .eq("session_id", detail.remotejid)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null })
 
       const [messagesResult, brokerResult] = await Promise.all([messagesPromise, brokerPromise])
 
@@ -264,7 +369,17 @@ export default function LeadDetailPage() {
         throw brokerResult.error
       }
 
-      setMessages((messagesResult.data ?? []) as ChatMessage[])
+      setMessages(
+        mapN8nMessages(
+          (messagesResult.data ?? []) as Array<{
+            id: string
+            session_id: string
+            message: unknown
+            created_at: string
+          }>,
+          id
+        )
+      )
       setAssignedBroker((brokerResult.data as Profile | null) ?? null)
       await loadNotes()
       setError("")
@@ -399,7 +514,12 @@ export default function LeadDetailPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "chat_history", filter: `lead_id=eq.${id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "n8n_chat_histories_sdr",
+          ...(leadSessionId ? { filter: `session_id=eq.${leadSessionId}` } : {}),
+        },
         () => {
           void loadDetails()
         }
@@ -417,7 +537,7 @@ export default function LeadDetailPage() {
       window.clearTimeout(timeoutId)
       void supabase.removeChannel(channel)
     }
-  }, [id, loadDetails])
+  }, [id, leadSessionId, loadDetails])
 
   const pageTitle = leadDisplayName(leadDetail)
   const activities = activityQuery.data ?? []
@@ -761,7 +881,7 @@ export default function LeadDetailPage() {
             <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Conversa</CardTitle>
-                <CardDescription>Atividades operacionais e histórico de mensagens deste lead.</CardDescription>
+                  <CardDescription>Atividades operacionais e histórico de mensagens deste lead.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
@@ -812,9 +932,9 @@ export default function LeadDetailPage() {
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Histórico da conversa</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Registros cronológicos da tabela chat_history para este lead.
-                    </p>
+                  <p className="text-sm text-muted-foreground">
+                    Registros cronológicos da tabela n8n_chat_histories_sdr para este lead.
+                  </p>
                   </div>
 
                 {messages.length === 0 ? (
