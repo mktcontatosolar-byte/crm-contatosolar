@@ -883,7 +883,7 @@ export default function KanbanPage() {
       ) : null}
 
       {!loading && stages.length > 0 ? (
-        <section className="space-y-3">
+        <section className="flex min-h-[calc(100vh-17rem)] flex-col space-y-3 lg:min-h-[calc(100vh-14rem)]">
           <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
@@ -899,67 +899,76 @@ export default function KanbanPage() {
             <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
           </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <div ref={kanbanScrollerRef} className="overflow-x-auto pb-4" onScroll={handleKanbanScroll}>
-              <div className="flex min-w-max items-stretch gap-4">
-                {stages.map((stage) => {
-                  const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
+          <div className="min-h-0 flex-1">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <div
+                ref={kanbanScrollerRef}
+                className="h-full overflow-x-auto overflow-y-hidden pb-4"
+                onScroll={handleKanbanScroll}
+              >
+                <div className="flex min-h-full min-w-max items-stretch gap-4">
+                  {stages.map((stage) => {
+                    const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 
-                  return (
-                    <DroppableStageColumn
-                      key={stage.id}
-                      stage={stage}
-                      leadCount={stageLeads.length}
-                      isOver={hoveredStageId === stage.id}
-                    >
-                      <SortableContext items={stageLeads.map((lead) => lead.id)} strategy={verticalListSortingStrategy}>
-                        {stageLeads.length === 0 ? <StatePanel dashed>Nenhum lead nesta etapa.</StatePanel> : null}
+                    return (
+                      <DroppableStageColumn
+                        key={stage.id}
+                        stage={stage}
+                        leadCount={stageLeads.length}
+                        isOver={hoveredStageId === stage.id}
+                      >
+                        <SortableContext
+                          items={stageLeads.map((lead) => lead.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {stageLeads.length === 0 ? <StatePanel dashed>Nenhum lead nesta etapa.</StatePanel> : null}
 
-                        {stageLeads.map((lead) => (
-                          <DraggableLeadCard
-                            key={lead.id}
-                            lead={lead}
-                            tags={tagsByLeadId[lead.id] ?? []}
-                            stages={stages}
-                            movingLeadId={movingLeadId}
-                            isDesktop={isDesktop}
-                            onMoveStage={moveLeadToStage}
-                            onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
-                            onRequestRedistribution={setPendingRedistribution}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DroppableStageColumn>
-                  )
-                })}
-              </div>
-            </div>
-
-            <DragOverlay>
-              {activeLead ? (
-                <div className="w-[320px] rotate-[1.5deg] opacity-95 xl:w-[340px]">
-                  <Card className="border border-primary/40 bg-card shadow-2xl">
-                    <LeadCardBody
-                      lead={activeLead}
-                      tags={tagsByLeadId[activeLead.id] ?? []}
-                      stages={stages}
-                      movingLeadId={movingLeadId}
-                      onMoveStage={moveLeadToStage}
-                      onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
-                      onRequestRedistribution={setPendingRedistribution}
-                    />
-                  </Card>
+                          {stageLeads.map((lead) => (
+                            <DraggableLeadCard
+                              key={lead.id}
+                              lead={lead}
+                              tags={tagsByLeadId[lead.id] ?? []}
+                              stages={stages}
+                              movingLeadId={movingLeadId}
+                              isDesktop={isDesktop}
+                              onMoveStage={moveLeadToStage}
+                              onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
+                              onRequestRedistribution={setPendingRedistribution}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DroppableStageColumn>
+                    )
+                  })}
                 </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              </div>
+
+              <DragOverlay>
+                {activeLead ? (
+                  <div className="w-[320px] rotate-[1.5deg] opacity-95 xl:w-[340px]">
+                    <Card className="border border-primary/40 bg-card shadow-2xl">
+                      <LeadCardBody
+                        lead={activeLead}
+                        tags={tagsByLeadId[activeLead.id] ?? []}
+                        stages={stages}
+                        movingLeadId={movingLeadId}
+                        onMoveStage={moveLeadToStage}
+                        onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
+                        onRequestRedistribution={setPendingRedistribution}
+                      />
+                    </Card>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
         </section>
       ) : null}
 

@@ -122,7 +122,7 @@ export default function LeadDetailModal({
 
     const { data: authorsData, error: authorsError } = await supabase
       .from("profiles")
-      .select("id,nome,email,role,ativo,created_at,updated_at")
+      .select("id,nome,email")
       .in("id", authorIds)
 
     if (authorsError) {
@@ -173,11 +173,7 @@ export default function LeadDetailModal({
         .order("created_at", { ascending: true })
 
       const brokerPromise = detail.corretor_id
-        ? supabase
-            .from("profiles")
-            .select("id,nome,email,role,ativo,created_at,updated_at")
-            .eq("id", detail.corretor_id)
-            .maybeSingle()
+        ? supabase.from("profiles").select("id,nome,email").eq("id", detail.corretor_id).maybeSingle()
         : Promise.resolve({ data: null, error: null })
 
       const [messagesResult, brokerResult] = await Promise.all([messagesPromise, brokerPromise])

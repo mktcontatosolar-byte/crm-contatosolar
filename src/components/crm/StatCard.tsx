@@ -1,10 +1,11 @@
+import type { ReactNode } from "react"
 import type { LucideIcon } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 type StatCardProps = {
   label: string
-  value: number
+  value: ReactNode
   icon: LucideIcon
   accentClassName: string
   helperText?: string

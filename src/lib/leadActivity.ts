@@ -49,7 +49,7 @@ export async function fetchLeadActivities(leadId: string) {
 
   const { data: usersData, error: usersError } = await supabase
     .from("profiles")
-    .select("id,nome,email,role,ativo,created_at,updated_at")
+    .select("id,nome,email")
     .in("id", userIds)
 
   if (usersError) {

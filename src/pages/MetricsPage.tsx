@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Activity, Archive, BriefcaseBusiness, Layers3, TrendingUp, Users } from "lucide-react"
+import { Archive, CheckCircle2, Clock3, Funnel, Users } from "lucide-react"
 
 import PageIntro from "@/components/crm/PageIntro"
 import StatePanel from "@/components/crm/StatePanel"
@@ -20,26 +20,37 @@ type MetricsLead = Pick<
   | "stage_id"
   | "arquivado"
   | "created_at"
+  | "first_response_at"
+  | "origem"
 >
 
 type BrokerSummary = Pick<Profile, "id" | "nome" | "email">
-
-function formatDateTime(dateString: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(dateString))
-}
 
 function leadDisplayName(lead: MetricsLead) {
   return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
-function countBy<T extends string>(items: T[]) {
-  return items.reduce<Record<string, number>>((acc, item) => {
-    acc[item] = (acc[item] ?? 0) + 1
-    return acc
-  }, {})
+void leadDisplayName
+
+function minutesBetween(start: string, end: string) {
+  return Math.max(0, (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60))
+}
+
+function formatAverageResponse(minutes: number | null) {
+  if (minutes === null) {
+    return "Sem dados"
+  }
+
+  if (minutes < 60) {
+    return `${Math.round(minutes)} min`
+  }
+
+  const hours = minutes / 60
+  if (hours < 24) {
+    return `${hours.toFixed(1)} h`
+  }
+
+  return `${(hours / 24).toFixed(1)} d`
 }
 
 function ChartPanel({
@@ -52,108 +63,13 @@ function ChartPanel({
   children: React.ReactNode
 }) {
   return (
-    <Card className="overflow-hidden rounded-3xl border border-border/60 bg-card/90 shadow-sm">
+    <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
-  )
-}
-
-function DonutChart({
-  value,
-  total,
-  label,
-  tone = "var(--color-chart-1)",
-}: {
-  value: number
-  total: number
-  label: string
-  tone?: string
-}) {
-  const safeTotal = Math.max(total, 1)
-  const radius = 40
-  const circumference = 2 * Math.PI * radius
-  const progress = Math.min(1, value / safeTotal)
-  const dashOffset = circumference * (1 - progress)
-
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-background/70 p-4">
-      <div className="relative h-24 w-24 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="color-mix(in oklab, var(--muted) 85%, transparent)" strokeWidth="10" />
-          <circle
-            cx="50"
-            cy="50"
-            r={radius}
-            fill="none"
-            stroke={tone}
-            strokeWidth="10"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold text-foreground">{value}</span>
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">de {safeTotal}</span>
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">
-          {Math.round(progress * 100)}% da base monitorada neste recorte.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function MiniAreaChart({
-  values,
-  stroke = "var(--color-chart-2)",
-  fill = "color-mix(in oklab, var(--color-chart-2) 18%, transparent)",
-}: {
-  values: number[]
-  stroke?: string
-  fill?: string
-}) {
-  const width = 320
-  const height = 120
-  const maxValue = Math.max(...values, 1)
-  const step = values.length > 1 ? width / (values.length - 1) : width
-
-  const points = values
-    .map((value, index) => {
-      const x = step * index
-      const y = height - (value / maxValue) * (height - 18) - 10
-      return `${x},${y}`
-    })
-    .join(" ")
-
-  const areaPoints = `0,${height} ${points} ${width},${height}`
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-36 w-full">
-      <defs>
-        <linearGradient id="metrics-area-gradient" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={fill} />
-          <stop offset="100%" stopColor="transparent" />
-        </linearGradient>
-      </defs>
-      <polygon points={areaPoints} fill="url(#metrics-area-gradient)" />
-      <polyline
-        fill="none"
-        stroke={stroke}
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-    </svg>
   )
 }
 
@@ -185,9 +101,14 @@ export default function MetricsPage() {
       const [leadsResult, stagesResult, brokersResult] = await Promise.all([
         supabase
           .from("leads_lancamento")
-          .select("id,nome_completo,email,telefone_contato,status_conversa,corretor_id,stage_id,arquivado,created_at")
+          .select(
+            "id,nome_completo,email,telefone_contato,status_conversa,corretor_id,stage_id,arquivado,created_at,first_response_at,origem"
+          )
           .order("created_at", { ascending: false }),
-        supabase.from("kanban_stages").select("id,nome,ordem,cor,is_final").order("ordem", { ascending: true }),
+        supabase
+          .from("kanban_stages")
+          .select("id,nome,ordem,cor,is_final")
+          .order("ordem", { ascending: true }),
         supabase
           .from("profiles")
           .select("id,nome,email")
@@ -213,7 +134,7 @@ export default function MetricsPage() {
       setBrokers((brokersResult.data ?? []) as BrokerSummary[])
       setError("")
     } catch (loadError) {
-      console.error("Erro ao carregar metricas:", loadError)
+      console.error("Erro ao carregar métricas:", loadError)
       setError("Não foi possível carregar as métricas do CRM.")
     } finally {
       setLoading(false)
@@ -257,39 +178,103 @@ export default function MetricsPage() {
   }, [loadMetrics])
 
   const metrics = useMemo(() => {
-    const qualifiedLeads = leads.filter((lead) => lead.status_conversa === "qualificado")
-    const poolLeads = qualifiedLeads.filter((lead) => !lead.corretor_id && !lead.arquivado)
-    const assignedLeads = leads.filter((lead) => lead.corretor_id && !lead.arquivado)
+    const activeLeads = leads.filter((lead) => !lead.arquivado)
+    const poolLeads = activeLeads.filter((lead) => !lead.corretor_id)
     const archivedLeads = leads.filter((lead) => lead.arquivado)
     const firstStageId = stages[0]?.id ?? null
+    const closedStage = stages.find((stage) => stage.nome.toLowerCase() === "fechado") ?? null
+    const closedLeadIds = new Set(
+      leads
+        .filter((lead) => !lead.arquivado && closedStage && (lead.stage_id ?? firstStageId) === closedStage.id)
+        .map((lead) => lead.id)
+    )
 
-    const leadsByStage = stages.map((stage) => ({
-      id: stage.id,
-      nome: stage.nome,
-      total: assignedLeads.filter((lead) => (lead.stage_id ?? firstStageId) === stage.id).length,
-      cor: stage.cor,
-    }))
+    const leadsByStage = stages.map((stage) => {
+      const total = activeLeads.filter((lead) => (lead.stage_id ?? firstStageId) === stage.id).length
+      return {
+        id: stage.id,
+        nome: stage.nome,
+        total,
+        cor: stage.cor,
+      }
+    })
 
-    const assignedByBroker = countBy(assignedLeads.map((lead) => lead.corretor_id!).filter(Boolean))
-    const leadsByBroker = brokers.map((broker) => ({
-      id: broker.id,
-      nome: broker.nome || broker.email || "Corretor sem nome",
-      total: assignedByBroker[broker.id] ?? 0,
-    }))
-    const maxStageCount = Math.max(...stages.map((stage) => assignedLeads.filter((lead) => (lead.stage_id ?? firstStageId) === stage.id).length), 1)
+    const maxStageCount = Math.max(1, ...leadsByStage.map((stage) => stage.total))
+
+    const topBrokers = brokers
+      .map((broker) => {
+        const brokerLeads = activeLeads.filter((lead) => lead.corretor_id === broker.id)
+        const brokerClosed = brokerLeads.filter((lead) => closedLeadIds.has(lead.id)).length
+
+        return {
+          id: broker.id,
+          nome: broker.nome || broker.email || "Corretor sem nome",
+          activeCount: brokerLeads.length,
+          closedCount: brokerClosed,
+        }
+      })
+      .sort((left, right) => {
+        if (right.activeCount !== left.activeCount) {
+          return right.activeCount - left.activeCount
+        }
+
+        return right.closedCount - left.closedCount
+      })
+      .slice(0, 5)
+
+    const originLabels = ["instagram", "facebook", "google", "direto"] as const
+    const originMap = new Map<string, number>(
+      originLabels.map((label) => [label, 0])
+    )
+    let otherOrigins = 0
+
+    leads.forEach((lead) => {
+      const normalizedOrigin = (lead.origem || "").trim().toLowerCase()
+      if (!normalizedOrigin) {
+        return
+      }
+
+      if (originMap.has(normalizedOrigin)) {
+        originMap.set(normalizedOrigin, (originMap.get(normalizedOrigin) ?? 0) + 1)
+      } else {
+        otherOrigins += 1
+      }
+    })
+
+    const leadsByOrigin = [
+      ...originLabels.map((label) => ({
+        label: label.charAt(0).toUpperCase() + label.slice(1),
+        total: originMap.get(label) ?? 0,
+      })),
+      { label: "Outros", total: otherOrigins },
+    ]
+
+    const maxOriginCount = Math.max(1, ...leadsByOrigin.map((origin) => origin.total))
+
+    const responseSamples = leads
+      .filter((lead) => lead.created_at && lead.first_response_at)
+      .map((lead) => minutesBetween(lead.created_at, lead.first_response_at))
+      .filter((value) => Number.isFinite(value))
+
+    const averageResponseTime =
+      responseSamples.length > 0
+        ? responseSamples.reduce((sum, value) => sum + value, 0) / responseSamples.length
+        : null
 
     return {
-      totalQualified: qualifiedLeads.length,
-      pool: poolLeads.length,
-      assigned: assignedLeads.length,
-      archived: archivedLeads.length,
+      totals: {
+        active: activeLeads.length,
+        pool: poolLeads.length,
+        archived: archivedLeads.length,
+        closed: closedLeadIds.size,
+      },
+      conversionRate: leads.length > 0 ? Math.round((closedLeadIds.size / leads.length) * 100) : 0,
+      averageResponseTime,
       leadsByStage,
-      leadsByBroker,
-      recentLeads: leads.slice(0, 6),
-      stageFallbackUsed: !stages.length,
-      conversionRate: qualifiedLeads.length ? Math.round((assignedLeads.length / qualifiedLeads.length) * 100) : 0,
-      archiveRate: leads.length ? Math.round((archivedLeads.length / leads.length) * 100) : 0,
-      stageWave: leadsByStage.map((stage) => stage.total || Math.max(1, Math.round(maxStageCount * 0.18))),
+      maxStageCount,
+      topBrokers,
+      leadsByOrigin,
+      maxOriginCount,
     }
   }, [brokers, leads, stages])
 
@@ -307,13 +292,13 @@ export default function MetricsPage() {
   return (
     <div className="space-y-8">
       <PageIntro
-        badge="Visao executiva"
+        badge="Visão executiva"
         title="Métricas do CRM"
-        description="Panorama em tempo real do funil comercial, distribuição de leads e produtividade do time."
+        description="Os números mais úteis para decisão comercial, sem excesso de informação."
         aside={
           <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em]">Leads mapeados</p>
+              <p className="text-xs uppercase tracking-[0.18em]">Leads totais</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{leads.length}</p>
             </div>
             <div>
@@ -330,243 +315,161 @@ export default function MetricsPage() {
 
       {!loading ? (
         <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: "Leads qualificados",
-                value: metrics.totalQualified,
-                icon: Activity,
-                accent: "text-sky-600 dark:text-sky-300",
-              },
-              {
-                label: "Leads no pool",
-                value: metrics.pool,
-                icon: Users,
-                accent: "text-amber-600 dark:text-amber-300",
-              },
-              {
-                label: "Leads atribuídos",
-                value: metrics.assigned,
-                icon: BriefcaseBusiness,
-                accent: "text-emerald-600 dark:text-emerald-300",
-              },
-              {
-                label: "Leads arquivados",
-                value: metrics.archived,
-                icon: Archive,
-                accent: "text-violet-600 dark:text-violet-300",
-              },
-            ].map((item) => (
-              <StatCard
-                key={item.label}
-                label={item.label}
-                value={item.value}
-                icon={item.icon}
-                accentClassName={item.accent}
-                helperText="Atualizado automaticamente conforme novas movimentações entram no Supabase."
-              />
-            ))}
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <StatCard
+              label="Leads ativos no funil"
+              value={metrics.totals.active}
+              icon={Funnel}
+              accentClassName="text-sky-600 dark:text-sky-300"
+            />
+            <StatCard
+              label="Leads no pool"
+              value={metrics.totals.pool}
+              icon={Users}
+              accentClassName="text-amber-600 dark:text-amber-300"
+            />
+            <StatCard
+              label="Leads arquivados"
+              value={metrics.totals.archived}
+              icon={Archive}
+              accentClassName="text-violet-600 dark:text-violet-300"
+            />
+            <StatCard
+              label="Taxa de conversão"
+              value={`${metrics.conversionRate}%`}
+              icon={CheckCircle2}
+              accentClassName="text-emerald-600 dark:text-emerald-300"
+            />
+            <StatCard
+              label="Tempo médio de resposta"
+              value={formatAverageResponse(metrics.averageResponseTime)}
+              icon={Clock3}
+              accentClassName="text-orange-600 dark:text-orange-300"
+            />
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-2">
+          <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <ChartPanel
-              title="Pulso do funil"
-              description="Leitura visual da distribuição atual por etapa, em uma curva compacta para bater o olho."
+              title="Leads por etapa do Kanban"
+              description="Distribuição atual do funil com barras proporcionais para leitura rápida."
             >
-              <div className="rounded-3xl border border-border/60 bg-background/70 p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                  Etapas ativas do kanban
-                </div>
-                <MiniAreaChart values={metrics.stageWave} />
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  {metrics.leadsByStage.map((stage) => (
-                    <div
-                      key={stage.id}
-                      className="rounded-2xl border border-border/60 bg-card/90 px-4 py-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: stage.cor || "var(--color-chart-1)" }}
-                        />
-                        <p className="truncate text-sm font-medium text-foreground">{stage.nome}</p>
-                      </div>
-                      <p className="mt-2 text-2xl font-semibold text-foreground">{stage.total}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ChartPanel>
-
-            <ChartPanel
-              title="Saúde operacional"
-              description="Dois indicadores visuais para entender velocidade de atribuição e peso de arquivamento."
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <DonutChart
-                  value={metrics.assigned}
-                  total={Math.max(metrics.totalQualified, metrics.assigned)}
-                  label="Leads atribuídos sobre os qualificados"
-                  tone="var(--color-chart-3)"
-                />
-                <DonutChart
-                  value={metrics.archived}
-                  total={Math.max(leads.length, metrics.archived)}
-                  label="Leads arquivados sobre a base total"
-                  tone="var(--color-chart-5)"
-                />
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Conversão para carteira</p>
-                  <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.conversionRate}%</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Percentual de leads qualificados que já estão com corretor.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Taxa de arquivo</p>
-                  <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.archiveRate}%</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Fatia da base que ja saiu do quadro ativo.
-                  </p>
-                </div>
-              </div>
-            </ChartPanel>
-          </section>
-
-          <section className="grid gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-7">
-              <ChartPanel
-                title="Leads por etapa"
-                description="Leads atribuídos e não arquivados agrupados pelas etapas atuais do kanban."
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Layers3 className="h-4 w-4 text-sky-600 dark:text-sky-300" />
-                    Distribuição atual do quadro
-                  </div>
-                  {metrics.leadsByStage.length === 0 ? (
-                    <StatePanel dashed>
-                      Nenhuma etapa cadastrada em <code>kanban_stages</code>.
-                    </StatePanel>
-                  ) : (
-                    metrics.leadsByStage.map((stage) => {
-                      const maxCount = Math.max(1, ...metrics.leadsByStage.map((item) => item.total))
-                      const width = `${Math.max(8, (stage.total / maxCount) * 100)}%`
-
-                      return (
-                        <div key={stage.id} className="space-y-2">
-                          <div className="flex items-center justify-between gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-foreground">
-                              <span
-                                className="h-2.5 w-2.5 rounded-full"
-                                style={{ backgroundColor: stage.cor || "#38bdf8" }}
-                              />
-                              <span>{stage.nome}</span>
-                            </div>
-                            <span className="text-muted-foreground">{stage.total}</span>
-                          </div>
-                          <div className="h-2.5 rounded-full bg-muted/60">
-                            <div
-                              className="h-2.5 rounded-full"
-                              style={{ width, backgroundColor: stage.cor || "#38bdf8" }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </ChartPanel>
-            </div>
-
-            <div className="xl:col-span-5">
-              <ChartPanel
-                title="Leads por corretor"
-                description="Distribuição atual de leads ativos já atribuídos."
-              >
-                <div className="space-y-3">
-                  {metrics.leadsByBroker.length === 0 ? (
-                    <StatePanel dashed>Nenhum corretor ativo encontrado.</StatePanel>
-                  ) : (
-                    metrics.leadsByBroker.map((broker) => {
-                      const maxBrokerCount = Math.max(1, ...metrics.leadsByBroker.map((item) => item.total))
-                      const width = `${Math.max(10, (broker.total / maxBrokerCount) * 100)}%`
-
-                      return (
-                        <div
-                          key={broker.id}
-                          className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3"
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="truncate text-sm font-medium text-foreground">{broker.nome}</span>
-                            <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-sm text-muted-foreground">
-                              {broker.total}
-                            </span>
-                          </div>
-                          <div className="h-2.5 rounded-full bg-muted/60">
-                            <div
-                              className="h-2.5 rounded-full bg-[linear-gradient(90deg,var(--color-chart-2),var(--color-chart-1))]"
-                              style={{ width }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </ChartPanel>
-            </div>
-          </section>
-
-          <section>
-            <Card className="rounded-3xl border border-border/60 bg-card/90 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Últimos leads recebidos</CardTitle>
-                <CardDescription>
-                  Entradas mais recentes da tabela <code>leads_lancamento</code>.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {metrics.recentLeads.length === 0 ? (
-                  <StatePanel dashed>Nenhum lead encontrado ainda.</StatePanel>
+              <div className="space-y-4">
+                {metrics.leadsByStage.length === 0 ? (
+                  <StatePanel dashed>Nenhuma etapa cadastrada em <code>kanban_stages</code>.</StatePanel>
                 ) : (
-                  metrics.recentLeads.map((lead) => (
-                    <div
-                      key={lead.id}
-                      className="rounded-2xl border border-border/60 bg-background/60 p-4"
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                          <p className="font-medium text-foreground">{leadDisplayName(lead)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {lead.email || lead.telefone_contato || "Sem contato principal"}
-                          </p>
+                  metrics.leadsByStage.map((stage) => (
+                    <div key={stage.id} className="space-y-2">
+                      <div className="flex items-center justify-between gap-4 text-sm">
+                        <div className="flex items-center gap-2 text-foreground">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: stage.cor || "#f97316" }}
+                          />
+                          <span>{stage.nome}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDateTime(lead.created_at)}
-                        </span>
+                        <span className="font-medium text-muted-foreground">{stage.total}</span>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs text-muted-foreground">
-                          {lead.status_conversa}
-                        </span>
-                        <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs text-muted-foreground">
-                          {lead.corretor_id ? "Atribuído" : "No pool"}
-                        </span>
-                        {lead.arquivado ? (
-                          <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs text-violet-700 dark:text-violet-300">
-                            Arquivado
-                          </span>
-                        ) : null}
+                      <div className="h-3 rounded-full bg-muted/60">
+                        <div
+                          className="h-3 rounded-full"
+                          style={{
+                            width: `${Math.max(8, (stage.total / metrics.maxStageCount) * 100)}%`,
+                            backgroundColor: stage.cor || "#f97316",
+                          }}
+                        />
                       </div>
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </ChartPanel>
+
+            <ChartPanel
+              title="Leads por origem"
+              description="Comparativo simples dos canais que mais trazem oportunidades."
+            >
+              <div className="space-y-4">
+                {metrics.leadsByOrigin.map((origin) => (
+                  <div key={origin.label} className="space-y-2">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-foreground">{origin.label}</span>
+                      <span className="font-medium text-muted-foreground">{origin.total}</span>
+                    </div>
+                    <div className="h-3 rounded-full bg-muted/60">
+                      <div
+                        className="h-3 rounded-full bg-[linear-gradient(90deg,var(--color-chart-2),var(--color-chart-1))]"
+                        style={{
+                          width: `${Math.max(8, (origin.total / metrics.maxOriginCount) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartPanel>
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+            <ChartPanel
+              title="Top corretores"
+              description="Quem está concentrando mais leads ativos e quem mais leva leads até Fechado."
+            >
+              <div className="space-y-3">
+                {metrics.topBrokers.length === 0 ? (
+                  <StatePanel dashed>Nenhum corretor ativo encontrado.</StatePanel>
+                ) : (
+                  metrics.topBrokers.map((broker) => (
+                    <div
+                      key={broker.id}
+                      className="rounded-2xl border border-border/60 bg-background/60 px-4 py-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="truncate font-medium text-foreground">{broker.nome}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-full border border-border/60 bg-card px-3 py-1">
+                            Ativos: {broker.activeCount}
+                          </span>
+                          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+                            Fechados: {broker.closedCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ChartPanel>
+
+            <ChartPanel
+              title="Resumo comercial"
+              description="Os números essenciais para decidir alocação de esforço do time."
+            >
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Leads fechados</p>
+                  <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.totals.closed}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Quantidade atual de leads que chegaram à etapa <strong>Fechado</strong>.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Fila sem corretor</p>
+                  <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.totals.pool}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Leads aguardando distribuição imediata no Pool.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Tempo médio de resposta</p>
+                  <p className="mt-2 text-3xl font-semibold text-foreground">
+                    {formatAverageResponse(metrics.averageResponseTime)}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Calculado entre criação do lead e primeiro registro em <code>first_response_at</code>.
+                  </p>
+                </div>
+              </div>
+            </ChartPanel>
           </section>
         </>
       ) : null}
