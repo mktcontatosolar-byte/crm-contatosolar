@@ -11,14 +11,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <main
         className={[
-          "relative flex min-h-0 flex-1 flex-col overflow-visible lg:h-screen",
+          "relative flex-1 overflow-visible lg:h-screen",
           isKanbanRoute ? "overflow-hidden lg:overflow-hidden" : "lg:overflow-y-auto",
         ].join(" ")}
       >
         <div
           className={[
             "mx-auto w-full max-w-[1760px] p-4 pb-8 sm:p-6 sm:pb-10 lg:p-8 lg:pb-12",
-            isKanbanRoute ? "flex h-full min-h-0 flex-col overflow-hidden" : "",
+            isKanbanRoute ? "h-full overflow-hidden" : "",
           ].join(" ")}
         >
           {children}
