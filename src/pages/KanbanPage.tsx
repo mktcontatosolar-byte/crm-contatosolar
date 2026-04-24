@@ -681,7 +681,7 @@ export default function KanbanPage() {
 
       const headerHeight = kanbanHeaderRef.current?.offsetHeight ?? 0
       const topScrollbarHeight = topScrollbarRef.current?.offsetHeight ?? 0
-      const nextColumnsHeight = Math.max(220, nextHeight - headerHeight - topScrollbarHeight - 12)
+      const nextColumnsHeight = Math.max(260, nextHeight - headerHeight - topScrollbarHeight - 4)
       setColumnsViewportHeight(nextColumnsHeight)
     }
 
@@ -918,7 +918,7 @@ export default function KanbanPage() {
         >
           <div
             ref={kanbanHeaderRef}
-            className="shrink-0 flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm"
+            className="shrink-0 flex items-center justify-between gap-4 rounded-3xl bg-card/65 px-4 py-3 text-sm text-muted-foreground"
           >
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
@@ -928,7 +928,7 @@ export default function KanbanPage() {
 
           <div
             ref={topScrollbarRef}
-            className="shrink-0 overflow-x-auto rounded-full border border-border/60 bg-card/70 px-1 py-1"
+            className="shrink-0 overflow-x-auto rounded-full bg-card/65 px-1 py-1"
             onScroll={handleTopScrollbarScroll}
           >
             <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />

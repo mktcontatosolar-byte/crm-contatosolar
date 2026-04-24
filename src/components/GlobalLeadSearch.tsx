@@ -134,7 +134,11 @@ function SearchResultSkeleton() {
   )
 }
 
-export default function GlobalLeadSearch() {
+export default function GlobalLeadSearch({
+  variant = "default",
+}: {
+  variant?: "default" | "sidebar"
+}) {
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [open, setOpen] = useState(false)
@@ -175,18 +179,31 @@ export default function GlobalLeadSearch() {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-12 rounded-3xl px-4"
-        onClick={() => setOpen(true)}
-      >
-        <Search className="mr-2 h-4 w-4" />
-        Buscar lead
-        <span className="ml-3 hidden rounded-full border border-border/60 bg-background px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:inline-flex">
-          Ctrl+K
-        </span>
-      </Button>
+      {variant === "sidebar" ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="h-11 w-11 rounded-full"
+          onClick={() => setOpen(true)}
+          aria-label="Buscar lead"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-12 rounded-3xl px-4"
+          onClick={() => setOpen(true)}
+        >
+          <Search className="mr-2 h-4 w-4" />
+          Buscar lead
+          <span className="ml-3 hidden rounded-full border border-border/60 bg-background px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:inline-flex">
+            Ctrl+K
+          </span>
+        </Button>
+      )}
 
       <CommandDialog
         open={open}

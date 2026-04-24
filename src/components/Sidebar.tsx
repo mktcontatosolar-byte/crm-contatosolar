@@ -1,3 +1,4 @@
+import GlobalLeadSearch from "@/components/GlobalLeadSearch"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -6,6 +7,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import ThemeToggle from "@/components/ThemeToggle"
 import { useAuth } from "@/contexts/useAuth"
 import {
@@ -171,6 +173,18 @@ export default function Sidebar() {
             </div>
 
             <div className="flex items-center gap-2">
+              <div className="hidden lg:block">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="rounded-full border border-sidebar-border/70 bg-sidebar-accent text-sidebar-foreground">
+                        <GlobalLeadSearch variant="sidebar" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Buscar lead</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <ThemeToggle />
               <Sheet>
                 <SheetTrigger asChild>
@@ -192,6 +206,11 @@ export default function Sidebar() {
                     <SheetTitle className="text-sidebar-foreground">Menu</SheetTitle>
                   </SheetHeader>
                   <div className="mt-4 flex h-full flex-col">
+                    <div className="mb-4">
+                      <div className="rounded-[1.25rem] border border-sidebar-border/70 bg-sidebar-accent/80 p-2">
+                        <GlobalLeadSearch variant="sidebar" />
+                      </div>
+                    </div>
                     <SidebarNav
                       mobile
                       menuItems={menuItems}
