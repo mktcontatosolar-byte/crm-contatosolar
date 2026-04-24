@@ -206,10 +206,6 @@ function LeadCardBody({
           </p>
         </div>
 
-        <div className="hidden rounded-2xl border border-dashed border-border/60 bg-background/60 px-3 py-2 text-xs text-muted-foreground md:block">
-          Arraste este card para outra coluna para mudar a etapa.
-        </div>
-
         <Button
           type="button"
           variant="outline"
@@ -299,11 +295,11 @@ function DroppableStageColumn({
     <div
       ref={setNodeRef}
       className={[
-        "flex min-h-[32rem] w-[320px] shrink-0 flex-col rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors xl:w-[340px]",
+        "flex h-full min-h-[28rem] w-[320px] shrink-0 flex-col overflow-hidden rounded-[2rem] border bg-card/70 shadow-sm backdrop-blur transition-colors md:min-h-0 xl:w-[340px]",
         isOver ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60",
       ].join(" ")}
     >
-      <div className="border-b border-border/60 px-4 py-4">
+      <div className="sticky top-0 z-10 border-b border-border/60 bg-card/95 px-4 py-4 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full" style={{ backgroundColor: stage.cor || "#64748b" }} />
@@ -832,7 +828,7 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100vh-8rem)] lg:overflow-hidden">
       <PageIntro
         badge="Funil operacional"
         badgeTone="emerald"
@@ -883,7 +879,7 @@ export default function KanbanPage() {
       ) : null}
 
       {!loading && stages.length > 0 ? (
-        <section className="flex min-h-[calc(100vh-17rem)] flex-col space-y-3 lg:min-h-[calc(100vh-14rem)]">
+        <section className="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden">
           <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
@@ -899,7 +895,7 @@ export default function KanbanPage() {
             <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
           </div>
 
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -910,10 +906,10 @@ export default function KanbanPage() {
             >
               <div
                 ref={kanbanScrollerRef}
-                className="h-full overflow-x-auto overflow-y-hidden pb-4"
+                className="h-full overflow-x-auto overflow-y-hidden pb-2"
                 onScroll={handleKanbanScroll}
               >
-                <div className="flex min-h-full min-w-max items-stretch gap-4">
+                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4">
                   {stages.map((stage) => {
                     const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 

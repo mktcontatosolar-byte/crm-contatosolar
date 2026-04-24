@@ -1107,10 +1107,7 @@ export default function LeadDetailPage() {
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Histórico da conversa</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Registros cronológicos da tabela n8n_chat_histories_sdr para este lead.
-                  </p>
-                  </div>
+                </div>
 
                 {messages.length === 0 ? (
                   <StatePanel centered={false}>Nenhuma conversa registrada ainda.</StatePanel>

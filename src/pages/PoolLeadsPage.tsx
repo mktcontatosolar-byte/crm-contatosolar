@@ -58,6 +58,7 @@ type PoolLead = Pick<
   | "outra_info"
   | "origem"
   | "campanha"
+  | "arquivado"
 >
 
 type CorretorOption = Pick<Profile, "id" | "nome" | "email">
@@ -171,10 +172,11 @@ export default function PoolLeadsPage() {
         supabase
           .from("leads_lancamento")
           .select(
-            "id,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,created_at,assumed_at,outra_info,origem,campanha"
+            "id,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,created_at,assumed_at,outra_info,origem,campanha,arquivado"
           )
           .eq("status_conversa", "qualificado")
           .is("corretor_id", null)
+          .eq("arquivado", false)
           .order("created_at", { ascending: false }),
         supabase
           .from("profiles")
