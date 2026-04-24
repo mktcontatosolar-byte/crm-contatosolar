@@ -68,6 +68,11 @@ type PendingRedistribution = {
   broker: TeamMember
 }
 
+type PendingStatusChange = {
+  member: TeamMember
+  nextActiveState: boolean
+}
+
 const initialFormValues: NewUserFormValues = {
   nome: "",
   email: "",
@@ -130,6 +135,7 @@ export default function TeamPage() {
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null)
   const [brokerForRedistribution, setBrokerForRedistribution] = useState<TeamMember | null>(null)
   const [pendingRedistribution, setPendingRedistribution] = useState<PendingRedistribution | null>(null)
+  const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null)
 
   const form = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -187,10 +193,11 @@ export default function TeamPage() {
     },
     onSuccess: async (member) => {
       toast.success(
-        `${member.role === "admin" ? "Admin" : "Corretor"} ${
-          member.ativo ? "inativado" : "ativado"
-        } com sucesso.`
+        member.ativo
+          ? `${member.role === "admin" ? "Admin" : "Corretor"} inativado com sucesso. O acesso foi removido e os dados foram preservados.`
+          : `${member.role === "admin" ? "Admin" : "Corretor"} reativado com sucesso.`
       )
+      setPendingStatusChange(null)
       await invalidateOperationalQueries()
     },
     onError: () => {
@@ -255,6 +262,52 @@ export default function TeamPage() {
     },
     onError: () => {
       toast.error("Não foi possível devolver o lead para o Pool.")
+    },
+  })
+
+  const redistributeAllLeadsMutation = useMutation({
+    mutationFn: async ({ broker, leads }: { broker: TeamMember; leads: BrokerLead[] }) => {
+      if (leads.length === 0) {
+        return { broker, total: 0 }
+      }
+
+      const leadIds = leads.map((lead) => lead.id)
+      const { error } = await supabase
+        .from("leads_lancamento")
+        .update({
+          corretor_id: null,
+          assumed_at: null,
+          stage_id: null,
+        })
+        .in("id", leadIds)
+
+      if (error) {
+        throw error
+      }
+
+      await Promise.all(
+        leads.map((lead) =>
+          logLeadActivity({
+            leadId: lead.id,
+            usuarioId: user?.id ?? null,
+            tipo: "pool",
+            descricao: "Lead devolvido ao pool",
+          })
+        )
+      )
+
+      return { broker, total: leads.length }
+    },
+    onSuccess: async ({ broker, total }) => {
+      toast.success(
+        total === 1
+          ? `1 lead de ${displayName(broker)} foi devolvido ao Pool.`
+          : `${total} leads de ${displayName(broker)} foram devolvidos ao Pool.`
+      )
+      await invalidateOperationalQueries()
+    },
+    onError: () => {
+      toast.error("Não foi possível devolver todos os leads para o Pool.")
     },
   })
 
@@ -331,6 +384,18 @@ export default function TeamPage() {
     await createUserMutation.mutateAsync(values)
   }
 
+  function requestStatusChange(member: TeamMember) {
+    if (member.ativo) {
+      setPendingStatusChange({
+        member,
+        nextActiveState: false,
+      })
+      return
+    }
+
+    toggleStatusMutation.mutate(member)
+  }
+
   function requestDelete(member: TeamMember, assignedCount: number) {
     if (assignedCount > 0) {
       toast.error("Este corretor ainda possui leads ativos. Reatribua os leads antes de excluir.")
@@ -346,6 +411,14 @@ export default function TeamPage() {
     }
 
     await deleteUserMutation.mutateAsync(pendingDeletion)
+  }
+
+  async function confirmStatusChange() {
+    if (!pendingStatusChange) {
+      return
+    }
+
+    await toggleStatusMutation.mutateAsync(pendingStatusChange.member)
   }
 
   if (!isAdmin) {
@@ -578,7 +651,7 @@ export default function TeamPage() {
                           size="sm"
                           className="rounded-full"
                           disabled={toggleStatusMutation.isPending}
-                          onClick={() => toggleStatusMutation.mutate(member)}
+                          onClick={() => requestStatusChange(member)}
                         >
                           {toggleStatusMutation.isPending && toggleStatusMutation.variables?.id === member.id
                             ? "Atualizando..."
@@ -693,7 +766,7 @@ export default function TeamPage() {
                               variant={member.ativo ? "outline" : "default"}
                               className="h-12 w-full rounded-full"
                               disabled={toggleStatusMutation.isPending}
-                              onClick={() => toggleStatusMutation.mutate(member)}
+                              onClick={() => requestStatusChange(member)}
                             >
                               {toggleStatusMutation.isPending &&
                               toggleStatusMutation.variables?.id === member.id
@@ -706,7 +779,7 @@ export default function TeamPage() {
                               type="button"
                               variant="destructive"
                               className="h-12 w-full rounded-full"
-                              disabled={deleteUserMutation.isPending}
+                              disabled={deleteUserMutation.isPending || assignedCount > 0}
                               onClick={() => requestDelete(member, assignedCount)}
                             >
                               {deleteUserMutation.isPending &&
@@ -750,7 +823,25 @@ export default function TeamPage() {
               {leadsForSelectedBroker.length === 0 ? (
                 <StatePanel centered={false}>Nenhum lead ativo para redistribuir.</StatePanel>
               ) : (
-                <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 rounded-full"
+                      disabled={redistributeAllLeadsMutation.isPending}
+                      onClick={() =>
+                        void redistributeAllLeadsMutation.mutateAsync({
+                          broker: brokerForRedistribution,
+                          leads: leadsForSelectedBroker,
+                        })
+                      }
+                    >
+                      {redistributeAllLeadsMutation.isPending ? "Devolvendo todos..." : "Devolver todos"}
+                    </Button>
+                  </div>
+
+                  <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
                   {leadsForSelectedBroker.map((lead) => (
                     <div
                       key={lead.id}
@@ -769,10 +860,11 @@ export default function TeamPage() {
                         className="h-12 w-full rounded-full md:w-auto"
                         onClick={() => setPendingRedistribution({ lead, broker: brokerForRedistribution })}
                       >
-                        Devolver para Pool
+                        Devolver ao Pool
                       </Button>
                     </div>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -786,6 +878,47 @@ export default function TeamPage() {
               onClick={() => setBrokerForRedistribution(null)}
             >
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(pendingStatusChange)} onOpenChange={(open) => !open && setPendingStatusChange(null)}>
+        <DialogContent showCloseButton className="rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle>
+              {pendingStatusChange?.nextActiveState ? "Reativar acesso?" : "Inativar acesso?"}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingStatusChange
+                ? pendingStatusChange.nextActiveState
+                  ? `${displayName(pendingStatusChange.member)} voltará a acessar o CRM normalmente.`
+                  : `${displayName(pendingStatusChange.member)} perderá acesso ao CRM, mas todos os leads, notas e atividades serão preservados.`
+                : "Confirme a alteração de acesso deste usuário."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 rounded-full"
+              onClick={() => setPendingStatusChange(null)}
+              disabled={toggleStatusMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="h-12 rounded-full"
+              disabled={!pendingStatusChange || toggleStatusMutation.isPending}
+              onClick={() => void confirmStatusChange()}
+            >
+              {toggleStatusMutation.isPending
+                ? "Atualizando..."
+                : pendingStatusChange?.nextActiveState
+                  ? "Confirmar reativação"
+                  : "Confirmar inativação"}
             </Button>
           </DialogFooter>
         </DialogContent>

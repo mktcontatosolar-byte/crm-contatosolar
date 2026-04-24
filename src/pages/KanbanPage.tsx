@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { startOfDay, subDays } from "date-fns"
 import {
   closestCorners,
@@ -344,6 +344,10 @@ export default function KanbanPage() {
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches
   )
+  const [topScrollbarWidth, setTopScrollbarWidth] = useState(0)
+  const topScrollbarRef = useRef<HTMLDivElement | null>(null)
+  const kanbanScrollerRef = useRef<HTMLDivElement | null>(null)
+  const syncSourceRef = useRef<"top" | "main" | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -353,13 +357,15 @@ export default function KanbanPage() {
     })
   )
 
-  const loadKanban = useCallback(async () => {
+  const loadKanban = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!user) {
       return
     }
 
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
 
       const leadsQuery = supabase
         .from("leads_lancamento")
@@ -536,7 +542,7 @@ export default function KanbanPage() {
       toast.success(`${leadDisplayName(lead)} devolvido para o Pool.`)
       setPendingRedistribution(null)
       await invalidateOperationalQueries()
-      await loadKanban()
+      await loadKanban({ silent: true })
     },
     onError: () => {
       toast.error("Não foi possível devolver o lead para o Pool.")
@@ -604,7 +610,7 @@ export default function KanbanPage() {
       setActiveLeadId(null)
       setHoveredStageId(null)
       setRollbackLeads(null)
-      await loadKanban()
+      await loadKanban({ silent: true })
     },
   })
 
@@ -650,7 +656,7 @@ export default function KanbanPage() {
           table: "leads_lancamento",
         },
         () => {
-          void loadKanban()
+          void loadKanban({ silent: true })
         }
       )
       .subscribe()
@@ -660,6 +666,49 @@ export default function KanbanPage() {
       void supabase.removeChannel(channel)
     }
   }, [user?.id, isAdmin, adminBrokerFilter, creationDateFilter, iaStatusFilter, originFilter, loadKanban])
+
+  useEffect(() => {
+    const updateScrollbarWidth = () => {
+      setTopScrollbarWidth(kanbanScrollerRef.current?.scrollWidth ?? 0)
+    }
+
+    updateScrollbarWidth()
+    const timeoutId = window.setTimeout(updateScrollbarWidth, 0)
+    window.addEventListener("resize", updateScrollbarWidth)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.removeEventListener("resize", updateScrollbarWidth)
+    }
+  }, [stages.length, leads.length, isDesktop])
+
+  const handleTopScrollbarScroll = () => {
+    if (!topScrollbarRef.current || !kanbanScrollerRef.current) {
+      return
+    }
+
+    if (syncSourceRef.current === "main") {
+      syncSourceRef.current = null
+      return
+    }
+
+    syncSourceRef.current = "top"
+    kanbanScrollerRef.current.scrollLeft = topScrollbarRef.current.scrollLeft
+  }
+
+  const handleKanbanScroll = () => {
+    if (!topScrollbarRef.current || !kanbanScrollerRef.current) {
+      return
+    }
+
+    if (syncSourceRef.current === "top") {
+      syncSourceRef.current = null
+      return
+    }
+
+    syncSourceRef.current = "main"
+    topScrollbarRef.current.scrollLeft = kanbanScrollerRef.current.scrollLeft
+  }
 
   const activeLead = activeLeadId ? leads.find((lead) => lead.id === activeLeadId) ?? null : null
   const hasActiveFilters = adminBrokerFilter !== "" || creationDateFilter !== "all" || iaStatusFilter !== "all" || originFilter !== "all"
@@ -842,6 +891,14 @@ export default function KanbanPage() {
             </p>
           </div>
 
+          <div
+            ref={topScrollbarRef}
+            className="overflow-x-auto rounded-full border border-border/60 bg-card/70 px-1 py-1"
+            onScroll={handleTopScrollbarScroll}
+          >
+            <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
+          </div>
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -850,7 +907,7 @@ export default function KanbanPage() {
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <div className="overflow-x-auto pb-4">
+            <div ref={kanbanScrollerRef} className="overflow-x-auto pb-4" onScroll={handleKanbanScroll}>
               <div className="flex min-w-max items-stretch gap-4">
                 {stages.map((stage) => {
                   const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)

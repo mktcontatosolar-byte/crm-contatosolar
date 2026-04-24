@@ -73,6 +73,25 @@ function formatRelativeTime(dateString: string | null | undefined) {
   })
 }
 
+function getSupabaseErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") {
+    return fallback
+  }
+
+  const candidate = error as {
+    message?: string
+    details?: string
+    hint?: string
+    code?: string
+  }
+
+  if (candidate.code === "42501") {
+    return "Sem permissão para salvar nota interna. Verifique a policy de INSERT da tabela lead_notes."
+  }
+
+  return candidate.details || candidate.hint || candidate.message || fallback
+}
+
 function leadDisplayName(lead: LeadDetail | null) {
   if (!lead) {
     return "Lead sem identificação"
@@ -327,7 +346,7 @@ export default function LeadDetailPage() {
     )
   }, [id])
 
-  const loadDetails = useCallback(async () => {
+  const loadDetails = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!id) {
       setError("Lead não encontrado.")
       setLoading(false)
@@ -335,7 +354,9 @@ export default function LeadDetailPage() {
     }
 
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
 
       const { data: leadData, error: leadError } = await supabase
         .from("leads_lancamento")
@@ -460,7 +481,7 @@ export default function LeadDetailPage() {
         return
       }
 
-      await loadDetails()
+      await loadDetails({ silent: true })
     } catch (updateError) {
       console.error("Erro ao atualizar lead:", updateError)
       setError("Não foi possível atualizar o lead.")
@@ -501,6 +522,13 @@ export default function LeadDetailPage() {
       toast.success("Nota interna salva com sucesso.")
     } catch (saveError) {
       console.error("Erro ao salvar nota interna:", saveError)
+      const message = getSupabaseErrorMessage(
+        saveError,
+        "Não foi possível salvar a nota interna."
+      )
+      setError(message)
+      toast.error(message)
+      return
       setError("Não foi possível salvar a nota interna.")
       toast.error("Não foi possível salvar a nota interna.")
     } finally {
@@ -525,7 +553,7 @@ export default function LeadDetailPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "leads_lancamento", filter: `id=eq.${id}` },
         () => {
-          void loadDetails()
+          void loadDetails({ silent: true })
         }
       )
       .on(
@@ -537,14 +565,14 @@ export default function LeadDetailPage() {
           ...(leadSessionId ? { filter: `session_id=eq.${leadSessionId}` } : {}),
         },
         () => {
-          void loadDetails()
+          void loadDetails({ silent: true })
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "lead_notes", filter: `lead_id=eq.${id}` },
         () => {
-          void loadDetails()
+          void loadDetails({ silent: true })
         }
       )
       .subscribe()

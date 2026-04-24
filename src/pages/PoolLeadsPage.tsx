@@ -161,9 +161,11 @@ export default function PoolLeadsPage() {
     typeof window === "undefined" ? true : window.matchMedia("(min-width: 1280px)").matches
   )
 
-  async function loadPool() {
+  async function loadPool({ silent = false }: { silent?: boolean } = {}) {
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
 
       const [leadsResult, corretoresResult] = await Promise.all([
         supabase
@@ -283,7 +285,7 @@ export default function PoolLeadsPage() {
           table: "leads_lancamento",
         },
         () => {
-          void loadPool()
+          void loadPool({ silent: true })
         }
       )
       .subscribe()
