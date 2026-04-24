@@ -828,7 +828,7 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100vh-8rem)] lg:overflow-hidden">
+    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100vh-6.5rem)] lg:overflow-hidden">
       <PageIntro
         badge="Funil operacional"
         badgeTone="emerald"
@@ -879,8 +879,8 @@ export default function KanbanPage() {
       ) : null}
 
       {!loading && stages.length > 0 ? (
-        <section className="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden">
-          <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+        <section className="flex h-full min-h-0 flex-1 flex-col space-y-3 overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/80 px-4 py-3 text-sm text-muted-foreground shadow-sm">
             <p className="font-medium text-foreground">Etapas em linha única com rolagem horizontal.</p>
             <p className="hidden sm:block">
               {isDesktop ? "Arraste os cards entre colunas ou deslize para ver todo o funil." : "Deslize para o lado para ver todo o funil."}
@@ -889,13 +889,13 @@ export default function KanbanPage() {
 
           <div
             ref={topScrollbarRef}
-            className="overflow-x-auto rounded-full border border-border/60 bg-card/70 px-1 py-1"
+            className="shrink-0 overflow-x-auto rounded-full border border-border/60 bg-card/70 px-1 py-1"
             onScroll={handleTopScrollbarScroll}
           >
             <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
