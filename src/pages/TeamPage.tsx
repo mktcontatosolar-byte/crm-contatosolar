@@ -634,14 +634,14 @@ export default function TeamPage() {
                   return (
                     <div
                       key={member.id}
-                      className="flex h-full flex-col rounded-[1.5rem] border border-border/60 bg-background/60 p-5"
+                      className="flex h-full min-w-[320px] flex-col overflow-hidden rounded-[1.5rem] border border-border/60 bg-background/60 p-6"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 space-y-2">
                           <p className="text-base font-semibold text-foreground">{displayName(member)}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                             <Mail className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{member.email || "Sem e-mail"}</span>
+                            <span className="truncate break-all">{member.email || "Sem e-mail"}</span>
                           </div>
                         </div>
 
@@ -657,17 +657,17 @@ export default function TeamPage() {
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
+                        <div className="min-w-0 rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Leads ativos</p>
                           <p className="mt-2 text-2xl font-semibold text-foreground">{assignedCount}</p>
                         </div>
-                        <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
+                        <div className="min-w-0 rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Status</p>
                           <p className="mt-2 text-sm font-medium text-foreground">
                             {member.ativo ? "Disponível" : "Fora da operação"}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
+                        <div className="min-w-0 rounded-2xl border border-border/60 bg-card/80 px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Desde</p>
                           <p className="mt-2 text-sm font-medium text-foreground">{formatDate(member.created_at)}</p>
                         </div>
@@ -716,7 +716,7 @@ export default function TeamPage() {
                         </div>
                       </div>
 
-                      <p className="mt-3 text-xs text-muted-foreground">
+                      <p className="mt-3 min-w-0 text-xs text-muted-foreground">
                         A exclusão definitiva apaga o acesso de autenticação e o profile quando não há leads ativos vinculados.
                       </p>
                     </div>
