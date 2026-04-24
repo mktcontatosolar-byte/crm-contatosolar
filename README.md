@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# CRM Lançamento
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. Descrição
+- Nome: `CRM Lançamento`
+- O que é: CRM imobiliário para gestão de leads, corretores e funil de vendas
 
-Currently, two official plugins are available:
+## 2. Stack
+- React + TypeScript strict
+- Vite
+- Supabase (Auth, Database, Edge Functions, RLS)
+- TanStack Query
+- TanStack Table
+- React Hook Form + Zod
+- shadcn/ui + Tailwind CSS
+- lucide-react
+- sonner
+- date-fns com `pt-BR`
+- `@dnd-kit` (drag and drop)
+- Netlify (deploy)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 3. Estrutura de pastas
+```text
+crm-lancamento/
+├─ public/                    # Arquivos públicos estáticos
+├─ src/
+│  ├─ assets/                 # Recursos visuais e estáticos do app
+│  ├─ components/             # Componentes reutilizáveis e UI base
+│  ├─ contexts/               # Contextos globais, incluindo autenticação
+│  ├─ hooks/                  # Hooks reutilizáveis
+│  ├─ lib/                    # Helpers, integração com Supabase e utilitários
+│  ├─ pages/                  # Páginas principais do CRM
+│  └─ types/                  # Tipos TypeScript do domínio
+├─ supabase/
+│  └─ functions/
+│     ├─ _shared/             # Helpers compartilhados das Edge Functions
+│     └─ manage-user/         # Edge Function de gestão de usuários
+├─ CLAUDE.md                  # Instruções permanentes do projeto
+├─ components.json            # Configuração do shadcn/ui
+├─ eslint.config.js           # Configuração de lint
+├─ index.html                 # HTML base do Vite
+├─ package.json               # Scripts e dependências
+├─ tsconfig*.json             # Configuração TypeScript
+└─ vite.config.ts             # Configuração do Vite
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 4. Tabelas do Supabase
+- `leads_lancamento` — leads do funil de lançamento
+- `profiles` — perfis de usuários (`admin` e `corretor`)
+- `kanban_stages` — etapas do kanban
+- `lead_notes` — notas internas dos leads
+- `lead_activity` — histórico de atividades dos leads
+- `lead_tags` — tags dos leads
+- `tags` — tabela de tags
+- `chat_history` — histórico de conversa
+- `historico_mensagens` — mensagens
+- `imoveis` — imóveis cadastrados
+- `documents` — documentos
+- `custo_tokens` — controle de custo de tokens de IA
+- `n8n_chat_histories_sdr` — histórico do SDR do n8n
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 5. Edge Functions
+- `manage-user` — criação e exclusão segura de usuários via Supabase Auth admin
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 6. Variáveis de ambiente necessárias
+Crie um arquivo `.env` na raiz com:
+
+```env
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
 ```
+
+## 7. Como rodar localmente
+```bash
+npm install
+```
+
+Configurar `.env` com as variáveis acima.
+
+```bash
+npm run dev
+```
+
+Comandos úteis:
+
+```bash
+npm run lint
+npm run build
+```
+
+## 8. Deploy
+- Conectado à Netlify via GitHub na branch `main`
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Redeploy automático a cada push na `main`
+
+## 9. Regras de segurança
+- `SERVICE_ROLE_KEY` nunca exposta no frontend
+- RLS ativo em todas as tabelas
+- Operações admin sempre via Edge Function
