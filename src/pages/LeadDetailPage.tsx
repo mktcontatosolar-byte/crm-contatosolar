@@ -177,19 +177,35 @@ function mapN8nMessages(
   }>,
   leadId: string
 ): ChatMessage[] {
+  const seen = new Set<string>()
+
   return rows
     .map((row) => {
       const content = extractMessageContent(row.message).trim()
+      const role = extractMessageRole(row.message)
 
       return {
         id: row.id,
         lead_id: leadId,
-        role: extractMessageRole(row.message),
+        role,
         content,
         created_at: row.created_at,
       }
     })
-    .filter((row) => row.content.length > 0)
+    .filter((row) => {
+      if (row.content.length === 0) {
+        return false
+      }
+
+      const dedupeKey = `${row.role}::${row.created_at}::${row.content}`
+
+      if (seen.has(dedupeKey)) {
+        return false
+      }
+
+      seen.add(dedupeKey)
+      return true
+    })
 }
 
 function DetailField({
@@ -940,27 +956,58 @@ export default function LeadDetailPage() {
                 {messages.length === 0 ? (
                   <StatePanel centered={false}>Nenhuma conversa registrada ainda.</StatePanel>
                 ) : (
-                  <div className="space-y-3">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className="rounded-2xl border border-border/60 bg-background/70 p-4"
-                      >
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge className="min-h-7 rounded-full px-3 text-sm capitalize">
-                              {message.role}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {formatDateTime(message.created_at)}
-                            </span>
+                  <div className="max-h-[500px] space-y-4 overflow-y-auto rounded-[2rem] border border-border/60 bg-muted/35 p-4 sm:p-5">
+                    {messages.map((message) => {
+                      const isUserMessage = message.role === "user"
+
+                      return (
+                        <div
+                          key={message.id}
+                          className={cn(
+                            "flex w-full",
+                            isUserMessage ? "justify-end" : "justify-start"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex max-w-[88%] items-end gap-3 sm:max-w-[75%]",
+                              isUserMessage ? "flex-row-reverse" : "flex-row"
+                            )}
+                          >
+                            {!isUserMessage ? (
+                              <Avatar size="sm" className="mt-1 h-8 w-8 border border-border/60 bg-card/90">
+                                <AvatarFallback className="bg-card text-[11px] font-semibold text-foreground">
+                                  Bot
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : null}
+
+                            <div
+                              className={cn(
+                                "rounded-[1.5rem] px-4 py-3 shadow-sm",
+                                isUserMessage
+                                  ? "rounded-br-md bg-emerald-900 text-emerald-50"
+                                  : "rounded-bl-md border border-border/60 bg-slate-800 text-slate-100"
+                              )}
+                            >
+                              <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                                {message.content}
+                              </p>
+                              <p
+                                className={cn(
+                                  "mt-2 text-[11px]",
+                                  isUserMessage ? "text-emerald-100/70" : "text-slate-300/70"
+                                )}
+                              >
+                                {format(new Date(message.created_at), "HH:mm", {
+                                  locale: ptBR,
+                                })}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
-                          {message.content}
-                        </p>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
                 </div>
