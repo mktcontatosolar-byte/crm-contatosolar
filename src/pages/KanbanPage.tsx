@@ -349,6 +349,7 @@ export default function KanbanPage() {
   const kanbanHeaderRef = useRef<HTMLDivElement | null>(null)
   const topScrollbarRef = useRef<HTMLDivElement | null>(null)
   const kanbanScrollerRef = useRef<HTMLDivElement | null>(null)
+  const columnsRowRef = useRef<HTMLDivElement | null>(null)
   const syncSourceRef = useRef<"top" | "main" | null>(null)
 
   const sensors = useSensors(
@@ -697,15 +698,35 @@ export default function KanbanPage() {
 
   useEffect(() => {
     const updateScrollbarWidth = () => {
-      setTopScrollbarWidth(kanbanScrollerRef.current?.scrollWidth ?? 0)
+      const contentWidth = columnsRowRef.current?.scrollWidth ?? 0
+      const viewportWidth = kanbanScrollerRef.current?.clientWidth ?? 0
+      setTopScrollbarWidth(Math.max(contentWidth, viewportWidth))
     }
 
     updateScrollbarWidth()
     const timeoutId = window.setTimeout(updateScrollbarWidth, 0)
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            updateScrollbarWidth()
+          })
+
+    if (resizeObserver) {
+      if (kanbanScrollerRef.current) {
+        resizeObserver.observe(kanbanScrollerRef.current)
+      }
+
+      if (columnsRowRef.current) {
+        resizeObserver.observe(columnsRowRef.current)
+      }
+    }
+
     window.addEventListener("resize", updateScrollbarWidth)
 
     return () => {
       window.clearTimeout(timeoutId)
+      resizeObserver?.disconnect()
       window.removeEventListener("resize", updateScrollbarWidth)
     }
   }, [stages.length, leads.length, isDesktop])
@@ -928,7 +949,7 @@ export default function KanbanPage() {
 
           <div
             ref={topScrollbarRef}
-            className="shrink-0 overflow-x-auto rounded-full bg-card/65 px-1 py-1"
+            className="shrink-0 w-full overflow-x-scroll overflow-y-hidden rounded-full bg-card/65 px-1 py-1"
             onScroll={handleTopScrollbarScroll}
           >
             <div className="h-2" style={{ width: `${topScrollbarWidth}px` }} />
@@ -945,11 +966,11 @@ export default function KanbanPage() {
             >
               <div
                 ref={kanbanScrollerRef}
-                className="min-h-0 h-full flex-1 overflow-x-auto overflow-y-hidden pb-2"
+                className="h-full min-h-0 w-full flex-1 overflow-x-auto overflow-y-hidden pb-2"
                 style={columnsViewportHeight ? { height: `${columnsViewportHeight}px` } : undefined}
                 onScroll={handleKanbanScroll}
               >
-                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4">
+                <div ref={columnsRowRef} className="inline-flex h-full min-h-0 min-w-max items-stretch gap-4 pr-4">
                   {stages.map((stage) => {
                     const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 
