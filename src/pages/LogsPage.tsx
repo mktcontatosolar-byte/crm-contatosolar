@@ -93,7 +93,7 @@ export default function LogsPage() {
   if (!isAdmin) {
     return (
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Logs</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Histórico de ações</h1>
         <p className="text-sm text-muted-foreground">Somente administradores podem acessar esta tela.</p>
       </div>
     )
@@ -102,15 +102,15 @@ export default function LogsPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        badge="Auditoria"
+        badge="Histórico do sistema"
         badgeTone="amber"
-        title="Logs"
-        description="Registro administrativo das principais mudanças feitas no CRM."
+        title="Histórico de ações"
+        description="Veja aqui as principais ações realizadas no sistema."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { label: "Eventos carregados", value: logs.length, icon: History },
-              { label: "Eventos visíveis", value: filteredLogs.length, icon: ShieldCheck },
+              { label: "Registros encontrados", value: logs.length, icon: History },
+              { label: "Registros na tela", value: filteredLogs.length, icon: ShieldCheck },
             ].map((item) => {
               const Icon = item.icon
               return (
@@ -133,11 +133,11 @@ export default function LogsPage() {
 
       {logsQuery.error ? (
         <StatePanel tone="error" centered={false}>
-          {logsQuery.error instanceof Error ? logsQuery.error.message : "Não foi possível carregar os logs."}
+          {logsQuery.error instanceof Error ? logsQuery.error.message : "Não conseguimos carregar o histórico agora."}
         </StatePanel>
       ) : null}
 
-      {logsQuery.isLoading ? <StatePanel>Carregando trilha de auditoria...</StatePanel> : null}
+      {logsQuery.isLoading ? <StatePanel>Carregando histórico de ações...</StatePanel> : null}
 
       {!logsQuery.isLoading && logs.length > 0 ? (
         <Card className="rounded-3xl border border-border/60 bg-background/80 shadow-none">
@@ -146,9 +146,11 @@ export default function LogsPage() {
               <div className="space-y-1">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Filter className="h-4 w-4 text-primary" />
-                  Filtros
+                  Filtrar histórico
                 </CardTitle>
-                <CardDescription>Refine a trilha por usuário, lead ou tipo de ação.</CardDescription>
+                <CardDescription>
+                  Use os filtros para encontrar ações por pessoa, lead ou tipo de alteração.
+                </CardDescription>
               </div>
               {hasActiveFilters ? (
                 <Button type="button" variant="ghost" className="rounded-2xl" onClick={clearFilters}>
@@ -162,21 +164,21 @@ export default function LogsPage() {
             <Input
               value={userFilter}
               onChange={(event) => setUserFilter(event.target.value)}
-              placeholder="Filtrar por usuário"
-              aria-label="Filtrar logs por usuário"
+              placeholder="Buscar por pessoa"
+              aria-label="Buscar histórico por pessoa"
               className="h-12 rounded-3xl border border-border bg-background px-4"
             />
             <Input
               value={leadFilter}
               onChange={(event) => setLeadFilter(event.target.value)}
-              placeholder="Filtrar por lead, ID ou dado relacionado"
-              aria-label="Filtrar logs por lead"
+              placeholder="Buscar por lead"
+              aria-label="Buscar histórico por lead"
               className="h-12 rounded-3xl border border-border bg-background px-4"
             />
             <Select
               value={actionFilter}
               onChange={(event) => setActionFilter(event.target.value)}
-              aria-label="Filtrar logs por ação"
+              aria-label="Filtrar histórico por ação"
               className="h-12 rounded-3xl border border-border bg-background px-4"
             >
               <option value="">Todas as ações</option>
@@ -190,10 +192,10 @@ export default function LogsPage() {
         </Card>
       ) : null}
 
-      {!logsQuery.isLoading && logs.length === 0 ? <StatePanel>Nenhum log registrado ainda.</StatePanel> : null}
+      {!logsQuery.isLoading && logs.length === 0 ? <StatePanel>Ainda não há registros para mostrar.</StatePanel> : null}
 
       {!logsQuery.isLoading && logs.length > 0 && filteredLogs.length === 0 ? (
-        <StatePanel centered={false}>Nenhum log encontrado com os filtros atuais.</StatePanel>
+        <StatePanel centered={false}>Nenhum resultado encontrado com esses filtros.</StatePanel>
       ) : null}
 
       {!logsQuery.isLoading && filteredLogs.length > 0 ? (
@@ -226,11 +228,11 @@ export default function LogsPage() {
 
               <CardContent className="grid gap-4 xl:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Antes</p>
+                  <p className="text-sm font-medium text-foreground">Como estava</p>
                   <JsonBlock value={log.before_data} />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Depois</p>
+                  <p className="text-sm font-medium text-foreground">Como ficou</p>
                   <JsonBlock value={log.after_data} />
                 </div>
               </CardContent>

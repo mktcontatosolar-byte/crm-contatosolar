@@ -78,6 +78,37 @@ function extractPhoneFromRemoteJid(remoteJid: string | null | undefined) {
   return digits.length > 0 ? digits : null
 }
 
+function buildSessionIdCandidates(sessionId: string) {
+  const normalized = sessionId.trim()
+  const candidates = new Set<string>()
+
+  if (!normalized) {
+    return []
+  }
+
+  candidates.add(normalized)
+
+  const withoutSuffix = normalized.split("@")[0]?.trim() ?? ""
+  const digitsOnly = normalized.replace(/\D/g, "")
+
+  if (withoutSuffix) {
+    candidates.add(withoutSuffix)
+  }
+
+  if (digitsOnly) {
+    candidates.add(digitsOnly)
+    candidates.add(`${digitsOnly}@s.whatsapp.net`)
+    candidates.add(`${digitsOnly}@c.us`)
+  }
+
+  if (withoutSuffix && /\d/.test(withoutSuffix)) {
+    candidates.add(`${withoutSuffix}@s.whatsapp.net`)
+    candidates.add(`${withoutSuffix}@c.us`)
+  }
+
+  return [...candidates]
+}
+
 function formatBrazilPhone(rawPhone: string | null | undefined) {
   if (!rawPhone) {
     return null
@@ -380,10 +411,16 @@ export async function searchCrmLeads(query: string) {
 }
 
 export async function fetchLeadMessages(sessionId: string) {
+  const sessionCandidates = buildSessionIdCandidates(sessionId)
+
+  if (sessionCandidates.length === 0) {
+    return []
+  }
+
   const { data, error } = await supabase
     .from(LEAD_MESSAGES_TABLE)
     .select("id,session_id,message,created_at")
-    .eq("session_id", sessionId)
+    .in("session_id", sessionCandidates)
     .order("created_at", { ascending: true })
 
   if (error) {

@@ -82,7 +82,7 @@ function formatRelativeTime(dateString: string) {
 }
 
 function leadDisplayName(lead: PoolLead) {
-  return lead.nome_completo || lead.numero || "Lead sem identificação"
+  return lead.nome_completo || lead.numero || "Lead sem identificaÃ§Ã£o"
 }
 
 function getInitials(value: string) {
@@ -97,12 +97,12 @@ function getInitials(value: string) {
 function getLeadStatus(hasBrokers: boolean) {
   return hasBrokers
     ? {
-        label: "Pronto para atribuição",
+        label: "Pronto para enviar",
         className:
           "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
       }
     : {
-        label: "Pendente",
+        label: "Sem vendedor disponível",
         className:
           "border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-300",
       }
@@ -203,7 +203,7 @@ export default function PoolLeadsPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar pool de leads:", loadError)
-      setError("Não foi possível carregar o pool de leads.")
+      setError("Não conseguimos carregar os leads agora.")
     } finally {
       setLoading(false)
     }
@@ -227,7 +227,7 @@ export default function PoolLeadsPage() {
         leadId,
         usuarioId: user?.id ?? null,
         tipo: "atribuicao",
-        descricao: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
+        descricao: `Lead atribuÃ­do para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
         metadata: {
           corretor_id: corretorId,
         },
@@ -240,7 +240,7 @@ export default function PoolLeadsPage() {
           entityType: "lead",
           entityId: leadId,
           action: "lead_assigned",
-          description: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
+          description: `Lead atribuÃ­do para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
           afterData: {
             corretor_id: corretorId,
             assumed_at: "set_now",
@@ -266,11 +266,11 @@ export default function PoolLeadsPage() {
       })
       setPendingAssignment(null)
       setError("")
-      toast.success("Lead atribuído com sucesso.")
+      toast.success("Lead atribuÃ­do com sucesso.")
     } catch (assignError) {
       console.error("Erro ao atribuir lead:", assignError)
-      setError("Não foi possível atribuir o lead.")
-      toast.error("Não foi possível atribuir o lead.")
+      setError("Não foi possível enviar esse lead agora.")
+      toast.error("Não foi possível enviar esse lead agora.")
     } finally {
       setAssigningLeadId(null)
     }
@@ -354,7 +354,7 @@ export default function PoolLeadsPage() {
   if (!isAdmin) {
     return (
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Pool de Leads</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Leads sem responsÃ¡vel</h1>
         <p className="text-sm text-muted-foreground">Somente administradores podem acessar esta tela.</p>
       </div>
     )
@@ -396,12 +396,12 @@ export default function PoolLeadsPage() {
           {[
             {
               icon: Phone,
-              label: "Número",
+              label: "NÃºmero",
               value: formatSupabaseValue(selectedLead.numero),
             },
             {
               icon: Building2,
-              label: "Tipo de imóvel",
+              label: "Tipo de imÃ³vel",
               value: formatSupabaseValue(selectedLead.tipoimovel),
             },
             {
@@ -421,7 +421,7 @@ export default function PoolLeadsPage() {
             },
             {
               icon: CircleAlert,
-              label: "Urgência",
+              label: "UrgÃªncia",
               value: formatSupabaseValue(selectedLead.urgencia),
             },
             {
@@ -455,7 +455,7 @@ export default function PoolLeadsPage() {
 
         <div className="space-y-2">
           <Label htmlFor={`pool-broker-${selectedLead.id}`} className="text-sm">
-            Escolher vendedor
+            Escolha o vendedor
           </Label>
           <SelectRoot
             value={selectedBrokerId}
@@ -469,7 +469,7 @@ export default function PoolLeadsPage() {
             <SelectTrigger id={`pool-broker-${selectedLead.id}`} className="text-sm">
               <SelectValue
                 placeholder={
-                  corretores.length === 0 ? "Nenhum vendedor ativo disponível" : "Selecione um vendedor"
+                  corretores.length === 0 ? "Nenhum vendedor ativo disponÃ­vel" : "Selecione um vendedor"
                 }
               />
             </SelectTrigger>
@@ -518,11 +518,11 @@ export default function PoolLeadsPage() {
                   className="h-12 w-full rounded-full"
                   onClick={() => navigate(`/leads/${selectedLead.id}`)}
                 >
-                  Ver detalhes
+                  Abrir detalhes
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={8}>
-                Abre a página completa com histórico e operações do lead.
+                Abre a pÃ¡gina completa com histÃ³rico e operaÃ§Ãµes do lead.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -536,9 +536,9 @@ export default function PoolLeadsPage() {
           <UserRoundSearch className="h-6 w-6 text-primary" />
         </div>
         <div className="space-y-2">
-          <p className="text-lg font-semibold text-foreground">Selecione um lead do pool</p>
+          <p className="text-lg font-semibold text-foreground">Selecione um lead para ver os detalhes</p>
           <p className="text-sm text-muted-foreground">
-            O painel lateral mostra os dados principais e a atribuição sem perder contexto da lista.
+            Aqui vocÃª vÃª os dados principais do lead e jÃ¡ escolhe quem vai atender.
           </p>
         </div>
       </CardContent>
@@ -548,15 +548,15 @@ export default function PoolLeadsPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        badge="Distribuição inicial"
+        badge="Novos contatos"
         badgeTone="amber"
-        title="Pool de Leads"
-        description="Todos os leads que chegam na base e ainda não foram atribuídos para um vendedor."
+        title="Leads sem responsÃ¡vel"
+        description="Aqui ficam os novos leads que ainda nÃ£o foram enviados para um vendedor."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               { label: "Vendedores ativos", value: corretores.length, icon: BadgeCheck },
-              { label: "Leads no pool", value: leads.length, icon: CalendarClock },
+              { label: "Leads aguardando envio", value: leads.length, icon: CalendarClock },
             ].map((item) => {
               const Icon = item.icon
               return (
@@ -592,7 +592,7 @@ export default function PoolLeadsPage() {
 
       {!loading && leads.length === 0 ? (
         <StatePanel>
-          Nenhum lead novo no pool neste momento. Novos leads aparecem aqui assim que entrarem na base sem vendedor atribuído.
+          NÃ£o hÃ¡ novos leads aguardando distribuiÃ§Ã£o. Quando um lead chegar sem responsÃ¡vel, ele vai aparecer aqui.
         </StatePanel>
       ) : null}
 
@@ -702,11 +702,11 @@ export default function PoolLeadsPage() {
       <Dialog open={Boolean(pendingAssignment)} onOpenChange={(open) => !open && setPendingAssignment(null)}>
         <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
-            <DialogTitle>Confirmar atribuição</DialogTitle>
+            <DialogTitle>Confirmar envio</DialogTitle>
             <DialogDescription>
               {pendingAssignment && pendingBroker
                 ? `Atribuir ${leadDisplayName(pendingAssignment.lead)} para ${pendingBroker.nome || pendingBroker.email}?`
-                : "Confirme a atribuição deste lead ao vendedor selecionado."}
+                : "Você quer enviar esse lead para esse vendedor?"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

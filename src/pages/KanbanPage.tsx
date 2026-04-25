@@ -93,7 +93,7 @@ type StageMovePayload = {
 }
 
 function leadDisplayName(lead: KanbanLead) {
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
+  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificaÃ§Ã£o"
 }
 
 function normalizeOrigin(origin: string | null | undefined) {
@@ -176,14 +176,14 @@ function LeadCardBody({
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="ghost" size="icon-sm" className="rounded-xl">
                   <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Abrir ações do lead</span>
+                  <span className="sr-only">Abrir aÃ§Ãµes do lead</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => onOpenDetails(lead.id)}>Ver detalhes</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onOpenDetails(lead.id)}>Abrir lead</DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onSelect={() => onRequestRedistribution(lead)}>
                   <RotateCcw className="h-4 w-4" />
-                  Devolver para Pool
+                  Voltar para a fila
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -226,7 +226,7 @@ function LeadCardBody({
             </SelectContent>
           </SelectRoot>
           <p className="text-xs text-muted-foreground">
-            {movingLeadId === lead.id ? "Atualizando etapa..." : "Escolha a próxima etapa deste lead."}
+            {movingLeadId === lead.id ? "Atualizando etapa..." : "Escolha a prÃ³xima etapa deste lead."}
           </p>
         </div>
 
@@ -238,7 +238,7 @@ function LeadCardBody({
             className="h-9 w-full rounded-full"
             onClick={() => onOpenDetails(lead.id)}
           >
-            Ver detalhes
+            Abrir lead
           </Button>
         </div>
       </CardContent>
@@ -475,7 +475,7 @@ export default function KanbanPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar kanban:", loadError)
-      setError("Não foi possível carregar o kanban.")
+      setError("NÃ£o foi possÃ­vel carregar o kanban.")
     } finally {
       setLoading(false)
     }
@@ -529,13 +529,13 @@ export default function KanbanPage() {
       return lead
     },
     onSuccess: async (lead) => {
-      toast.success(`${leadDisplayName(lead)} devolvido para o Pool.`)
+      toast.success(`${leadDisplayName(lead)} voltou para a fila.`)
       setPendingRedistribution(null)
       await invalidateOperationalQueries()
       await loadKanban({ silent: true })
     },
     onError: () => {
-      toast.error("Não foi possível devolver o lead para o Pool.")
+      toast.error("NÃ£o foi possÃ­vel devolver o lead para o Pool.")
     },
   })
 
@@ -543,7 +543,7 @@ export default function KanbanPage() {
     mutationFn: async ({ lead, stageId }: StageMovePayload) => {
       const stage = stages.find((item) => item.id === stageId)
       if (!stage) {
-        throw new Error("Etapa inválida.")
+        throw new Error("Etapa invÃ¡lida.")
       }
 
       await updateLeadState(lead.id, {
@@ -609,8 +609,8 @@ export default function KanbanPage() {
     onError: (moveError, _variables, context) => {
       console.error("Erro ao mover lead:", moveError)
       setLeads(context?.previousLeads ?? rollbackLeads ?? leads)
-      setError("Não foi possível mover o lead para a etapa selecionada.")
-      toast.error("Não foi possível mover o lead.")
+      setError("NÃ£o foi possÃ­vel mover o lead para a etapa selecionada.")
+      toast.error("NÃ£o foi possÃ­vel mover o lead.")
     },
     onSettled: async () => {
       setMovingLeadId(null)
@@ -742,15 +742,15 @@ export default function KanbanPage() {
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor="kanban-created-filter">Data de criação</Label>
+        <Label htmlFor="kanban-created-filter">Data de criaÃ§Ã£o</Label>
         <SelectRoot value={creationDateFilter} onValueChange={(value) => setCreationDateFilter(value as CreationDateFilter)}>
           <SelectTrigger id="kanban-created-filter" className="min-h-11 rounded-2xl bg-background/80">
             <SelectValue placeholder="Todas as datas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="today">Hoje</SelectItem>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
+            <SelectItem value="7d">Ãšltimos 7 dias</SelectItem>
+            <SelectItem value="30d">Ãšltimos 30 dias</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </SelectRoot>
@@ -835,15 +835,15 @@ export default function KanbanPage() {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">Meu Kanban</h1>
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">Meus leads</h1>
             <Badge
               variant="outline"
               className="h-7 rounded-full border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-700 dark:text-emerald-300"
             >
-              Funil operacional
+              Acompanhamento dos leads
             </Badge>
             <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm text-muted-foreground">
-              <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em]">Leads ativos</span>
+              <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em]">Leads em atendimento</span>
               <span className="text-sm font-semibold text-foreground">{leads.length}</span>
             </div>
           </div>
@@ -868,7 +868,7 @@ export default function KanbanPage() {
 
       {error ? <StatePanel tone="error" centered={false}>{error}</StatePanel> : null}
 
-      {loading ? <StatePanel>Carregando etapas, leads atribuídos e tags do kanban...</StatePanel> : null}
+      {loading ? <StatePanel>Carregando etapas, leads atribuÃ­dos e tags do kanban...</StatePanel> : null}
 
       {!loading && stages.length === 0 ? (
         <StatePanel tone="warning" centered={false}>
@@ -958,11 +958,11 @@ export default function KanbanPage() {
       <Dialog open={Boolean(pendingRedistribution)} onOpenChange={(open) => !open && setPendingRedistribution(null)}>
         <DialogContent showCloseButton>
           <DialogHeader>
-            <DialogTitle>Devolver lead para o Pool?</DialogTitle>
+            <DialogTitle>Remover esse lead da carteira?</DialogTitle>
             <DialogDescription>
               {pendingRedistribution
-                ? `${leadDisplayName(pendingRedistribution)} será removido da carteira atual e voltará para o Pool.`
-                : "Confirme a redistribuição do lead."}
+                ? `${leadDisplayName(pendingRedistribution)} serÃ¡ removido da carteira atual e voltarÃ¡ para o Pool.`
+                : "Confirme a redistribuiÃ§Ã£o do lead."}
             </DialogDescription>
           </DialogHeader>
 
@@ -992,8 +992,8 @@ export default function KanbanPage() {
       <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
         <SheetContent side="bottom" className="rounded-t-[2rem] md:hidden">
           <SheetHeader className="pr-10">
-            <SheetTitle>Filtros do Kanban</SheetTitle>
-            <SheetDescription>Ajuste vendedor, criação, IA e origem para encontrar os leads certos.</SheetDescription>
+            <SheetTitle>Filtrar meus leads</SheetTitle>
+            <SheetDescription>Use os filtros para encontrar os leads mais rápido.</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 pt-4">
             {filterFields}

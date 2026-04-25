@@ -130,7 +130,7 @@ export default function ArchivedLeadsPage() {
       return lead
     },
     onSuccess: async (lead) => {
-      toast.success(`${leadDisplayName(lead)} devolvido ao Pool.`)
+      toast.success(`${leadDisplayName(lead)} voltou para a fila.`)
       setPendingLead(null)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["archived-leads"] }),
@@ -140,7 +140,7 @@ export default function ArchivedLeadsPage() {
       ])
     },
     onError: () => {
-      toast.error("Não foi possível desarquivar o lead.")
+      toast.error("Não foi possível colocar esse lead de volta na fila.")
     },
   })
 
@@ -149,12 +149,12 @@ export default function ArchivedLeadsPage() {
   const headerStats = useMemo(
     () => [
       {
-        label: "Arquivados agora",
+        label: "Arquivados",
         value: archivedLeads.length,
         icon: Inbox,
       },
       {
-        label: "Com interação recente",
+        label: "Com contato recente",
         value: archivedLeads.filter((lead) => Boolean(lead.last_interaction_at)).length,
         icon: MessageSquareText,
       },
@@ -165,7 +165,7 @@ export default function ArchivedLeadsPage() {
   if (!isAdmin) {
     return (
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Arquivados</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Leads arquivados</h1>
         <p className="text-sm text-muted-foreground">Somente administradores podem acessar esta tela.</p>
       </div>
     )
@@ -174,10 +174,10 @@ export default function ArchivedLeadsPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        badge="Recuperação de carteira"
+        badge="Recuperar leads"
         badgeTone="amber"
-        title="Arquivados"
-        description="Revise leads fora da operação ativa e devolva qualquer registro arquivado diretamente para o Pool."
+        title="Leads arquivados"
+        description="Veja os leads que saíram da operação e, se precisar, coloque qualquer um de volta na fila."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {headerStats.map((item) => {
@@ -204,7 +204,7 @@ export default function ArchivedLeadsPage() {
         <StatePanel tone="error" centered={false}>
           {archivedLeadsQuery.error instanceof Error
             ? archivedLeadsQuery.error.message
-            : "Não foi possível carregar os leads arquivados."}
+            : "Não conseguimos carregar os leads arquivados agora."}
         </StatePanel>
       ) : null}
 
@@ -218,7 +218,7 @@ export default function ArchivedLeadsPage() {
 
       {!archivedLeadsQuery.isLoading && archivedLeads.length === 0 ? (
         <StatePanel>
-          Nenhum lead arquivado no momento. Quando um atendimento for encerrado, ele aparecerá aqui.
+          Não há leads arquivados no momento. Quando um atendimento for finalizado, ele vai aparecer aqui.
         </StatePanel>
       ) : null}
 
@@ -244,7 +244,7 @@ export default function ArchivedLeadsPage() {
                         <CalendarClock className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">Última movimentação</p>
+                        <p className="text-sm font-medium text-foreground">Último contato</p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {formatDate(lead.last_interaction_at)}
                         </p>
@@ -270,7 +270,7 @@ export default function ArchivedLeadsPage() {
                         <CalendarClock className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">Criado em</p>
+                        <p className="text-sm font-medium text-foreground">Quando entrou</p>
                         <p className="mt-1 text-sm text-muted-foreground">{formatDate(lead.created_at)}</p>
                       </div>
                     </div>
@@ -284,7 +284,7 @@ export default function ArchivedLeadsPage() {
                     onClick={() => setPendingLead(lead)}
                   >
                     <ArchiveRestore className="mr-2 h-4 w-4" />
-                    Desarquivar
+                    Voltar para a fila
                   </Button>
                   <Button
                     type="button"
@@ -292,7 +292,7 @@ export default function ArchivedLeadsPage() {
                     className="h-12 rounded-full sm:w-auto"
                     onClick={() => navigate(`/leads/${lead.id}`)}
                   >
-                    Ver detalhes
+                    Abrir detalhes
                   </Button>
                 </div>
               </CardContent>
@@ -304,11 +304,11 @@ export default function ArchivedLeadsPage() {
       <Dialog open={Boolean(pendingLead)} onOpenChange={(open) => !open && setPendingLead(null)}>
         <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
-            <DialogTitle>Desarquivar lead?</DialogTitle>
+            <DialogTitle>Colocar esse lead de volta na fila?</DialogTitle>
             <DialogDescription>
               {pendingLead
-                ? `${leadDisplayName(pendingLead)} sairá da lista de arquivados e voltará para o Pool sem vendedor atribuído.`
-                : "Confirme o desarquivamento do lead."}
+                ? `${leadDisplayName(pendingLead)} vai sair dos arquivados e voltar para a fila sem vendedor definido.`
+                : "Confirme se esse lead deve voltar para a fila."}
             </DialogDescription>
           </DialogHeader>
 
@@ -331,7 +331,7 @@ export default function ArchivedLeadsPage() {
                   : undefined
               }
             >
-              {unarchiveLeadMutation.isPending ? "Desarquivando..." : "Confirmar"}
+              {unarchiveLeadMutation.isPending ? "Voltando para a fila..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
