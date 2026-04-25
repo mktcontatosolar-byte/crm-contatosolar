@@ -16,9 +16,7 @@ export type DeleteManagedUserPayload = {
   userId: string
 }
 
-export type ManageUserPayload =
-  | CreateManagedUserPayload
-  | DeleteManagedUserPayload
+export type ManageUserPayload = CreateManagedUserPayload | DeleteManagedUserPayload
 
 type CreateManagedUserResponse = {
   success: true
@@ -60,8 +58,6 @@ export class ManageUserRequestError extends Error {
   }
 }
 
-const manageUserUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-user`
-
 function normalizeErrorResponse(body: Partial<ManageUserErrorResponse>, fallback: string) {
   return new ManageUserRequestError(
     typeof body.error === "string" && body.error ? body.error : fallback,
@@ -71,42 +67,36 @@ function normalizeErrorResponse(body: Partial<ManageUserErrorResponse>, fallback
 
 export async function manageUser(payload: ManageUserPayload) {
   const { data: sessionData } = await supabase.auth.getSession()
-  const accessToken = sessionData.session?.access_token
-
-  if (!accessToken) {
-    throw new ManageUserRequestError("Sessao expirada. Entre novamente para continuar.", "missing_session")
+  if (!sessionData.session?.access_token) {
+    throw new ManageUserRequestError(
+      "Sessao expirada. Entre novamente para continuar.",
+      "missing_session"
+    )
   }
 
-  const response = await fetch(manageUserUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(payload),
+  const { data, error } = await supabase.functions.invoke<ManageUserResponse>("manage-user", {
+    body: payload,
   })
 
-  let data: ManageUserResponse | null = null
+  if (error) {
+    const response = error.context instanceof Response ? error.context : null
 
-  try {
-    data = (await response.json()) as ManageUserResponse
-  } catch {
-    if (!response.ok) {
-      throw new ManageUserRequestError(
-        "A Edge Function respondeu com erro sem corpo JSON.",
-        "invalid_response"
-      )
-    }
-  }
-
-  if (!response.ok) {
-    if (data && !data.success) {
-      throw normalizeErrorResponse(data, "Não foi possível concluir a operação com a Edge Function.")
+    if (response) {
+      try {
+        const errorBody = (await response.json()) as Partial<ManageUserErrorResponse>
+        throw normalizeErrorResponse(
+          errorBody,
+          "Nao foi possivel concluir a operacao com a Edge Function."
+        )
+      } catch (parseError) {
+        if (parseError instanceof ManageUserRequestError) {
+          throw parseError
+        }
+      }
     }
 
     throw new ManageUserRequestError(
-      "Não foi possível concluir a operação com a Edge Function.",
+      error instanceof Error ? error.message : "Nao foi possivel chamar a Edge Function.",
       "request_failed"
     )
   }

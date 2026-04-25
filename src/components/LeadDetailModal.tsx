@@ -416,7 +416,7 @@ export default function LeadDetailModal({
                       <p className="text-sm text-muted-foreground">Informações principais para atendimento.</p>
                     </div>
                     <span className="rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
-                      {assignedBroker?.nome || assignedBroker?.email || "Sem corretor"}
+                      {assignedBroker?.nome || assignedBroker?.email || "Sem vendedor"}
                     </span>
                   </div>
 
@@ -435,8 +435,8 @@ export default function LeadDetailModal({
                       icon={MessageSquareText}
                     />
                     <DetailItem
-                      label="Corretor atribuído"
-                      value={assignedBroker?.nome || assignedBroker?.email || "Nenhum corretor atribuído"}
+                      label="Vendedor atribuído"
+                      value={assignedBroker?.nome || assignedBroker?.email || "Nenhum vendedor atribuído"}
                       icon={UserRound}
                     />
                   </div>
@@ -577,7 +577,7 @@ export default function LeadDetailModal({
                     placeholder={
                       canAddNote
                         ? "Escreva uma observação interna sobre este lead"
-                        : "Somente admin ou o corretor responsável podem adicionar notas"
+                        : "Somente admin ou o vendedor responsável podem adicionar notas"
                     }
                     value={newNote}
                     disabled={!canAddNote || savingNote}
@@ -587,7 +587,7 @@ export default function LeadDetailModal({
                     <span>
                       {canAddNote
                         ? "Notas ficam visíveis apenas para a equipe."
-                        : "Você precisa ser admin ou corretor responsável para registrar notas."}
+                        : "Você precisa ser admin ou vendedor responsável para registrar notas."}
                     </span>
                     <span>{newNote.trim().length} caractere(s)</span>
                   </div>

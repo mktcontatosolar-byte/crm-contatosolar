@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { startOfDay, subDays } from "date-fns"
 import {
   closestCorners,
   DndContext,
@@ -48,6 +47,15 @@ import {
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
+import {
+  fetchKanbanLeads,
+  fetchKanbanOrigins,
+  fetchLeadStages,
+  LEAD_SOURCE_TABLE,
+  LEAD_STATE_TABLE,
+  LEAD_TAGS_TABLE,
+  updateLeadState,
+} from "@/lib/crmLeads"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import type { KanbanStage, Lead, LeadTag, Profile, Tag } from "@/types"
@@ -69,6 +77,7 @@ type KanbanLead = Pick<
   | "stage_id"
   | "arquivado"
   | "ia_paused"
+  | "first_response_at"
   | "last_interaction_at"
 >
 
@@ -381,54 +390,17 @@ export default function KanbanPage() {
         setLoading(true)
       }
 
-      const leadsQuery = supabase
-        .from("leads_lancamento")
-        .select(
-          "id,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,created_at,assumed_at,outra_info,origem,campanha,stage_id,arquivado,ia_paused,last_interaction_at"
-        )
-        .not("corretor_id", "is", null)
-        .eq("arquivado", false)
-        .order("last_interaction_at", { ascending: false, nullsFirst: false })
-
-      if (!isAdmin) {
-        leadsQuery.eq("corretor_id", user.id)
-      } else if (adminBrokerFilter) {
-        leadsQuery.eq("corretor_id", adminBrokerFilter)
-      }
-
-      if (creationDateFilter === "today") {
-        leadsQuery.gte("created_at", startOfDay(new Date()).toISOString())
-      } else if (creationDateFilter === "7d") {
-        leadsQuery.gte("created_at", startOfDay(subDays(new Date(), 7)).toISOString())
-      } else if (creationDateFilter === "30d") {
-        leadsQuery.gte("created_at", startOfDay(subDays(new Date(), 30)).toISOString())
-      }
-
-      if (iaStatusFilter === "active") {
-        leadsQuery.eq("ia_paused", false)
-      } else if (iaStatusFilter === "paused") {
-        leadsQuery.eq("ia_paused", true)
-      }
-
-      if (originFilter !== "all") {
-        leadsQuery.eq("origem", originFilter)
-      }
-
-      const originQuery = supabase
-        .from("leads_lancamento")
-        .select("origem")
-        .not("corretor_id", "is", null)
-        .eq("arquivado", false)
-        .not("origem", "is", null)
-
-      if (!isAdmin) {
-        originQuery.eq("corretor_id", user.id)
-      }
-
       const [stagesResult, leadsResult, originsResult] = await Promise.all([
-        supabase.from("kanban_stages").select("id,nome,ordem,cor,is_final").order("ordem", { ascending: true }),
-        leadsQuery,
-        originQuery,
+        fetchLeadStages(),
+        fetchKanbanLeads({
+          userId: user.id,
+          isAdmin,
+          brokerId: adminBrokerFilter,
+          creationDateFilter,
+          iaStatusFilter,
+          originFilter,
+        }),
+        fetchKanbanOrigins({ userId: user.id, isAdmin }),
       ])
 
       const brokersResult = isAdmin
@@ -440,21 +412,9 @@ export default function KanbanPage() {
             .order("nome", { ascending: true })
         : null
 
-      if (stagesResult.error) {
-        throw stagesResult.error
-      }
-
-      if (leadsResult.error) {
-        throw leadsResult.error
-      }
-
-      if (originsResult.error) {
-        throw originsResult.error
-      }
-
-      const nextStages = (stagesResult.data ?? []) as KanbanStage[]
-      const nextLeads = (leadsResult.data ?? []) as KanbanLead[]
-      const nextOrigins = [...new Set((originsResult.data ?? []).map((item) => item.origem).filter(Boolean))] as string[]
+      const nextStages = stagesResult as KanbanStage[]
+      const nextLeads = leadsResult as KanbanLead[]
+      const nextOrigins = originsResult as string[]
 
       setStages(nextStages)
       setLeads(nextLeads)
@@ -469,7 +429,7 @@ export default function KanbanPage() {
       }
 
       const { data: leadTagsData, error: leadTagsError } = await supabase
-        .from("lead_tags")
+        .from(LEAD_TAGS_TABLE)
         .select("lead_id,tag_id")
         .in("lead_id", leadIds)
 
@@ -530,18 +490,11 @@ export default function KanbanPage() {
 
   const redistributeLeadMutation = useMutation({
     mutationFn: async (lead: KanbanLead) => {
-      const { error: updateError } = await supabase
-        .from("leads_lancamento")
-        .update({
-          corretor_id: null,
-          assumed_at: null,
-          stage_id: null,
-        })
-        .eq("id", lead.id)
-
-      if (updateError) {
-        throw updateError
-      }
+      await updateLeadState(lead.id, {
+        corretor_id: null,
+        assumed_at: null,
+        stage_id: null,
+      })
 
       await logLeadActivity({
         leadId: lead.id,
@@ -570,16 +523,14 @@ export default function KanbanPage() {
         throw new Error("Etapa inválida.")
       }
 
-      const { error: updateError } = await supabase
-        .from("leads_lancamento")
-        .update({
-          stage_id: stage.id,
-        })
-        .eq("id", lead.id)
-
-      if (updateError) {
-        throw updateError
-      }
+      await updateLeadState(lead.id, {
+        corretor_id: lead.corretor_id,
+        assumed_at: lead.assumed_at ?? null,
+        stage_id: stage.id,
+        arquivado: lead.arquivado,
+        ia_paused: lead.ia_paused,
+        first_response_at: lead.first_response_at ?? null,
+      })
 
       await logLeadActivity({
         leadId: lead.id,
@@ -667,7 +618,18 @@ export default function KanbanPage() {
         {
           event: "*",
           schema: "public",
-          table: "leads_lancamento",
+          table: LEAD_STATE_TABLE,
+        },
+        () => {
+          void loadKanban({ silent: true })
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: LEAD_SOURCE_TABLE,
         },
         () => {
           void loadKanban({ silent: true })
@@ -720,16 +682,16 @@ export default function KanbanPage() {
     <div className={`grid gap-4 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
       {isAdmin ? (
         <div className="space-y-2">
-          <Label htmlFor="kanban-corretor-filter">Corretor</Label>
+          <Label htmlFor="kanban-corretor-filter">Vendedor</Label>
           <SelectRoot value={adminBrokerFilter || "all"} onValueChange={(value) => setAdminBrokerFilter(value === "all" ? "" : value)}>
             <SelectTrigger id="kanban-corretor-filter" className="min-h-11 rounded-2xl bg-background/80">
-              <SelectValue placeholder="Todos os corretores" />
+              <SelectValue placeholder="Todos os vendedores" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os corretores</SelectItem>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
               {brokers.map((broker) => (
                 <SelectItem key={broker.id} value={broker.id}>
-                  {broker.nome || broker.email || "Corretor sem nome"}
+                  {broker.nome || broker.email || "Vendedor sem nome"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -989,7 +951,7 @@ export default function KanbanPage() {
         <SheetContent side="bottom" className="rounded-t-[2rem] md:hidden">
           <SheetHeader className="pr-10">
             <SheetTitle>Filtros do Kanban</SheetTitle>
-            <SheetDescription>Ajuste corretor, criação, IA e origem para encontrar os leads certos.</SheetDescription>
+            <SheetDescription>Ajuste vendedor, criação, IA e origem para encontrar os leads certos.</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 pt-4">
             {filterFields}

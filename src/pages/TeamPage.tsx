@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { useAuth } from "@/contexts/useAuth"
+import { fetchAssignedLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { ManageUserRequestError, manageUser } from "@/lib/manageUser"
 import { supabase } from "@/lib/supabase"
@@ -101,23 +102,16 @@ async function fetchTeamData(): Promise<TeamQueryResult> {
       .in("role", ["admin", "corretor"])
       .order("role", { ascending: true })
       .order("nome", { ascending: true }),
-    supabase
-      .from("leads_lancamento")
-      .select("id,nome_completo,email,telefone_contato,corretor_id,arquivado")
-      .not("corretor_id", "is", null),
+    fetchAssignedLeads(),
   ])
 
   if (membersResult.error) {
     throw membersResult.error
   }
 
-  if (leadsResult.error) {
-    throw leadsResult.error
-  }
-
   return {
     members: (membersResult.data ?? []) as TeamMember[],
-    leads: (leadsResult.data ?? []) as BrokerLead[],
+    leads: leadsResult as BrokerLead[],
   }
 }
 
@@ -168,7 +162,7 @@ export default function TeamPage() {
       }),
     onSuccess: async (_, variables) => {
       form.reset(initialFormValues)
-      toast.success(`${variables.role === "admin" ? "Admin" : "Corretor"} criado com sucesso.`)
+      toast.success(`${variables.role === "admin" ? "Admin" : "Vendedor"} criado com sucesso.`)
       await invalidateOperationalQueries()
     },
     onError: (error) => {
@@ -194,8 +188,8 @@ export default function TeamPage() {
     onSuccess: async (member) => {
       toast.success(
         member.ativo
-          ? `${member.role === "admin" ? "Admin" : "Corretor"} inativado com sucesso. O acesso foi removido e os dados foram preservados.`
-          : `${member.role === "admin" ? "Admin" : "Corretor"} reativado com sucesso.`
+          ? `${member.role === "admin" ? "Admin" : "Vendedor"} inativado com sucesso. O acesso foi removido e os dados foram preservados.`
+          : `${member.role === "admin" ? "Admin" : "Vendedor"} reativado com sucesso.`
       )
       setPendingStatusChange(null)
       await invalidateOperationalQueries()
@@ -218,7 +212,7 @@ export default function TeamPage() {
     },
     onError: (error) => {
       if (isAssignedLeadsError(error)) {
-        toast.error("Este corretor ainda possui leads ativos. Reatribua os leads antes de excluir.")
+        toast.error("Este vendedor ainda possui leads ativos. Reatribua os leads antes de excluir.")
         return
       }
 
@@ -233,18 +227,11 @@ export default function TeamPage() {
 
   const redistributeLeadMutation = useMutation({
     mutationFn: async (lead: BrokerLead) => {
-      const { error } = await supabase
-        .from("leads_lancamento")
-        .update({
-          corretor_id: null,
-          assumed_at: null,
-          stage_id: null,
-        })
-        .eq("id", lead.id)
-
-      if (error) {
-        throw error
-      }
+      await updateLeadState(lead.id, {
+        corretor_id: null,
+        assumed_at: null,
+        stage_id: null,
+      })
 
       await logLeadActivity({
         leadId: lead.id,
@@ -272,18 +259,15 @@ export default function TeamPage() {
       }
 
       const leadIds = leads.map((lead) => lead.id)
-      const { error } = await supabase
-        .from("leads_lancamento")
-        .update({
-          corretor_id: null,
-          assumed_at: null,
-          stage_id: null,
-        })
-        .in("id", leadIds)
-
-      if (error) {
-        throw error
-      }
+      await Promise.all(
+        leadIds.map((leadId) =>
+          updateLeadState(leadId, {
+            corretor_id: null,
+            assumed_at: null,
+            stage_id: null,
+          })
+        )
+      )
 
       await Promise.all(
         leads.map((lead) =>
@@ -327,7 +311,14 @@ export default function TeamPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "leads_lancamento" },
+        { event: "*", schema: "public", table: LEAD_STATE_TABLE },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["team-data"] })
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: LEAD_SOURCE_TABLE },
         () => {
           void queryClient.invalidateQueries({ queryKey: ["team-data"] })
         }
@@ -398,7 +389,7 @@ export default function TeamPage() {
 
   function requestDelete(member: TeamMember, assignedCount: number) {
     if (assignedCount > 0) {
-      toast.error("Este corretor ainda possui leads ativos. Reatribua os leads antes de excluir.")
+      toast.error("Este vendedor ainda possui leads ativos. Reatribua os leads antes de excluir.")
       return
     }
 
@@ -436,7 +427,7 @@ export default function TeamPage() {
         badge="Pessoas e permissões"
         badgeTone="amber"
         title="Equipe"
-        description="Gerencie acessos do time comercial, acompanhe carga por corretor e execute criação ou exclusão por backend seguro."
+        description="Gerencie acessos do time comercial, acompanhe carga por vendedor e execute criação ou exclusão por backend seguro."
         aside={
           <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
@@ -444,7 +435,7 @@ export default function TeamPage() {
               <p className="mt-1 text-2xl font-semibold text-foreground">{summary.admins.length}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.18em]">Corretores</p>
+              <p className="text-xs uppercase tracking-[0.18em]">Vendedores</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{summary.brokers.length}</p>
             </div>
           </div>
@@ -462,13 +453,13 @@ export default function TeamPage() {
       <section className="grid gap-4 md:grid-cols-4">
         {[
           {
-            label: "Corretores ativos",
+            label: "Vendedores ativos",
             value: summary.activeBrokers,
             icon: UserCheck,
             accent: "text-emerald-600 dark:text-emerald-300",
           },
           {
-            label: "Corretores inativos",
+            label: "Vendedores inativos",
             value: summary.inactiveBrokers,
             icon: UserMinus,
             accent: "text-amber-600 dark:text-amber-300",
@@ -504,7 +495,7 @@ export default function TeamPage() {
               Novo acesso
             </CardTitle>
             <CardDescription>
-              Crie administradores e corretores pela Edge Function segura, sem expor chave privilegiada no navegador.
+              Crie administradores e vendedores pela Edge Function segura, sem expor chave privilegiada no navegador.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -568,7 +559,7 @@ export default function TeamPage() {
                 <div className="space-y-2">
                   <Label htmlFor="team-role">Papel</Label>
                   <Select id="team-role" disabled={createUserMutation.isPending} {...form.register("role")}>
-                    <option value="corretor">Corretor</option>
+                    <option value="corretor">Vendedor</option>
                     <option value="admin">Admin</option>
                   </Select>
                 </div>
@@ -686,17 +677,17 @@ export default function TeamPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Users className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
-              Corretores
+              Vendedores
             </CardTitle>
             <CardDescription>
               Disponibilidade, volume de leads e controle operacional do time comercial.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {teamQuery.isLoading ? <StatePanel>Carregando corretores...</StatePanel> : null}
+            {teamQuery.isLoading ? <StatePanel>Carregando vendedores...</StatePanel> : null}
 
             {!teamQuery.isLoading && summary.brokers.length === 0 ? (
-              <StatePanel dashed>Nenhum corretor encontrado.</StatePanel>
+              <StatePanel dashed>Nenhum vendedor encontrado.</StatePanel>
             ) : null}
 
             {!teamQuery.isLoading ? (
@@ -807,7 +798,7 @@ export default function TeamPage() {
         <DialogContent className="max-w-3xl rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>
-              Redistribuir leads de {brokerForRedistribution ? displayName(brokerForRedistribution) : "corretor"}
+              Redistribuir leads de {brokerForRedistribution ? displayName(brokerForRedistribution) : "vendedor"}
             </DialogTitle>
             <DialogDescription>
               Selecione quais leads ativos devem voltar para o Pool sem precisar abrir o detalhe individual.
@@ -817,7 +808,7 @@ export default function TeamPage() {
           {brokerForRedistribution ? (
             <div className="space-y-3">
               <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-                {leadsForSelectedBroker.length} lead(s) ativo(s) atribuídos a este corretor.
+                {leadsForSelectedBroker.length} lead(s) ativo(s) atribuídos a este vendedor.
               </div>
 
               {leadsForSelectedBroker.length === 0 ? (

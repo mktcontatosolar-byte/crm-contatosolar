@@ -39,6 +39,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts/useAuth"
+import { fetchPoolLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
@@ -169,15 +170,7 @@ export default function PoolLeadsPage() {
       }
 
       const [leadsResult, corretoresResult] = await Promise.all([
-        supabase
-          .from("leads_lancamento")
-          .select(
-            "id,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,created_at,assumed_at,outra_info,origem,campanha,arquivado"
-          )
-          .eq("status_conversa", "qualificado")
-          .is("corretor_id", null)
-          .eq("arquivado", false)
-          .order("created_at", { ascending: false }),
+        fetchPoolLeads(),
         supabase
           .from("profiles")
           .select("id,nome,email")
@@ -186,15 +179,11 @@ export default function PoolLeadsPage() {
           .order("nome", { ascending: true }),
       ])
 
-      if (leadsResult.error) {
-        throw leadsResult.error
-      }
-
       if (corretoresResult.error) {
         throw corretoresResult.error
       }
 
-      const nextLeads = (leadsResult.data ?? []) as PoolLead[]
+      const nextLeads = leadsResult as PoolLead[]
       const nextCorretores = (corretoresResult.data ?? []) as CorretorOption[]
 
       setLeads(nextLeads)
@@ -223,24 +212,17 @@ export default function PoolLeadsPage() {
     setAssigningLeadId(leadId)
 
     try {
-      const { error: updateError } = await supabase
-        .from("leads_lancamento")
-        .update({
-          corretor_id: corretorId,
-          assumed_at: new Date().toISOString(),
-        })
-        .eq("id", leadId)
-
-      if (updateError) {
-        throw updateError
-      }
+      await updateLeadState(leadId, {
+        corretor_id: corretorId,
+        assumed_at: new Date().toISOString(),
+      })
 
       const selectedBroker = corretores.find((corretor) => corretor.id === corretorId)
       await logLeadActivity({
         leadId,
         usuarioId: user?.id ?? null,
         tipo: "atribuicao",
-        descricao: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "corretor"}`,
+        descricao: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
         metadata: {
           corretor_id: corretorId,
         },
@@ -284,7 +266,18 @@ export default function PoolLeadsPage() {
         {
           event: "*",
           schema: "public",
-          table: "leads_lancamento",
+          table: LEAD_STATE_TABLE,
+        },
+        () => {
+          void loadPool({ silent: true })
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: LEAD_SOURCE_TABLE,
         },
         () => {
           void loadPool({ silent: true })
@@ -412,7 +405,7 @@ export default function PoolLeadsPage() {
 
         <div className="space-y-2">
           <Label htmlFor={`pool-broker-${selectedLead.id}`} className="text-sm">
-            Escolher corretor
+            Escolher vendedor
           </Label>
           <SelectRoot
             value={selectedBrokerId}
@@ -426,7 +419,7 @@ export default function PoolLeadsPage() {
             <SelectTrigger id={`pool-broker-${selectedLead.id}`} className="text-sm">
               <SelectValue
                 placeholder={
-                  corretores.length === 0 ? "Nenhum corretor ativo disponível" : "Selecione um corretor"
+                  corretores.length === 0 ? "Nenhum vendedor ativo disponível" : "Selecione um vendedor"
                 }
               />
             </SelectTrigger>
@@ -441,7 +434,7 @@ export default function PoolLeadsPage() {
                     </Avatar>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {corretor.nome || "Corretor sem nome"}
+                        {corretor.nome || "Vendedor sem nome"}
                       </p>
                       <p className="truncate text-sm text-muted-foreground">{corretor.email || "Sem e-mail"}</p>
                     </div>
@@ -508,11 +501,11 @@ export default function PoolLeadsPage() {
         badge="Distribuição inicial"
         badgeTone="amber"
         title="Pool de Leads"
-        description="Leads qualificados ainda não atribuídos para um corretor."
+        description="Leads qualificados ainda não atribuídos para um vendedor."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { label: "Corretores ativos", value: corretores.length, icon: BadgeCheck },
+              { label: "Vendedores ativos", value: corretores.length, icon: BadgeCheck },
               { label: "Leads no pool", value: leads.length, icon: CalendarClock },
             ].map((item) => {
               const Icon = item.icon
@@ -549,7 +542,7 @@ export default function PoolLeadsPage() {
 
       {!loading && leads.length === 0 ? (
         <StatePanel>
-          Nenhum lead qualificado no pool neste momento. Novos leads voltam a aparecer aqui assim que ficarem sem corretor.
+          Nenhum lead qualificado no pool neste momento. Novos leads voltam a aparecer aqui assim que ficarem sem vendedor.
         </StatePanel>
       ) : null}
 
@@ -659,7 +652,7 @@ export default function PoolLeadsPage() {
             <DialogDescription>
               {pendingAssignment && pendingBroker
                 ? `Atribuir ${leadDisplayName(pendingAssignment.lead)} para ${pendingBroker.nome || pendingBroker.email}?`
-                : "Confirme a atribuição deste lead ao corretor selecionado."}
+                : "Confirme a atribuição deste lead ao vendedor selecionado."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

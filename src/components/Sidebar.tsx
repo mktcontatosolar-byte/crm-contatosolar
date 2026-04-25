@@ -12,7 +12,6 @@ import ThemeToggle from "@/components/ThemeToggle"
 import { useAuth } from "@/contexts/useAuth"
 import {
   Archive,
-  Building2,
   ChevronRight,
   Kanban,
   LayoutDashboard,
@@ -90,7 +89,7 @@ function SidebarNav({
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs capitalize text-sidebar-foreground/65">{profileRole}</p>
             <span className="rounded-full border border-sidebar-border/70 bg-sidebar px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-sidebar-foreground/70">
-              {isAdmin ? "Admin" : "Corretor"}
+              {isAdmin ? "Admin" : "Vendedor"}
             </span>
           </div>
         </div>
@@ -105,7 +104,7 @@ function SidebarNav({
           Sair
         </Button>
         <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          feito por Gabriel S.
+          feito por Gabriel B.
         </p>
       </div>
     </>
@@ -163,12 +162,13 @@ export default function Sidebar() {
       <div className="flex h-full flex-col lg:min-h-0">
         <div className="border-b border-sidebar-border/70 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-sidebar-border/70 bg-sidebar-primary/20 p-2.5 shadow-[0_0_0_1px_color-mix(in_oklab,var(--sidebar-primary)_12%,transparent)]">
-                <Building2 className="h-5 w-5 text-sidebar-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold tracking-tight">CRM Lançamento</p>
+            <div className="flex min-w-0 flex-1 items-center">
+              <div className="flex h-16 w-36 shrink-0 items-center justify-start sm:h-20 sm:w-44">
+                <img
+                  src="/logo.png"
+                  alt="Logo Contato Solar"
+                  className="h-full w-full object-contain object-left"
+                />
               </div>
             </div>
 

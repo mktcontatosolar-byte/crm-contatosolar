@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import { LEAD_ACTIVITY_TABLE } from "@/lib/crmLeads"
 import type { LeadActivity, LeadActivityType, Profile } from "@/types"
 
 type LogLeadActivityInput = {
@@ -16,7 +17,7 @@ export async function logLeadActivity({
   descricao,
   metadata = null,
 }: LogLeadActivityInput) {
-  const { error } = await supabase.from("lead_activity").insert({
+  const { error } = await supabase.from(LEAD_ACTIVITY_TABLE).insert({
     lead_id: leadId,
     usuario_id: usuarioId,
     tipo,
@@ -31,7 +32,7 @@ export async function logLeadActivity({
 
 export async function fetchLeadActivities(leadId: string) {
   const { data, error } = await supabase
-    .from("lead_activity")
+    .from(LEAD_ACTIVITY_TABLE)
     .select("id,lead_id,usuario_id,tipo,descricao,metadata,created_at")
     .eq("lead_id", leadId)
     .order("created_at", { ascending: false })

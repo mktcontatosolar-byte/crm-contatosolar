@@ -45,11 +45,11 @@ export default function Login() {
       <Card className="relative w-full max-w-md rounded-3xl border border-border/60 bg-card/94 shadow-xl backdrop-blur">
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border/60 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--primary)_22%,transparent),color-mix(in_oklab,var(--chart-1)_22%,transparent))] text-foreground">
-            <span className="text-lg font-semibold">GS</span>
+            <span className="text-lg font-semibold">CS</span>
           </div>
           <div className="space-y-2">
             <CardTitle className="text-balance text-3xl font-semibold tracking-tight">
-              CRM Lancamento
+              Contato Solar
             </CardTitle>
             <CardDescription>
               Entre para continuar a operação comercial com visão clara, distribuição rápida e acompanhamento do funil.

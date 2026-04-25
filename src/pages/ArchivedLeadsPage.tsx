@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/useAuth"
+import { fetchArchivedLeads as fetchArchivedCrmLeads, updateLeadState } from "@/lib/crmLeads"
 import { logLeadActivity } from "@/lib/leadActivity"
-import { supabase } from "@/lib/supabase"
 import type { Lead } from "@/types"
 
 type ArchivedLead = Pick<
@@ -51,19 +51,7 @@ function formatDate(dateString: string | null) {
 }
 
 async function fetchArchivedLeads(): Promise<ArchivedLead[]> {
-  const { data, error } = await supabase
-    .from("leads_lancamento")
-    .select(
-      "id,nome_completo,email,telefone_contato,status_conversa,created_at,last_interaction_at,arquivado"
-    )
-    .eq("arquivado", true)
-    .order("last_interaction_at", { ascending: false, nullsFirst: false })
-
-  if (error) {
-    throw error
-  }
-
-  return (data ?? []) as ArchivedLead[]
+  return (await fetchArchivedCrmLeads()) as ArchivedLead[]
 }
 
 function ArchivedLeadSkeleton() {
@@ -102,19 +90,12 @@ export default function ArchivedLeadsPage() {
 
   const unarchiveLeadMutation = useMutation({
     mutationFn: async (lead: ArchivedLead) => {
-      const { error } = await supabase
-        .from("leads_lancamento")
-        .update({
-          arquivado: false,
-          corretor_id: null,
-          assumed_at: null,
-          stage_id: null,
-        })
-        .eq("id", lead.id)
-
-      if (error) {
-        throw error
-      }
+      await updateLeadState(lead.id, {
+        arquivado: false,
+        corretor_id: null,
+        assumed_at: null,
+        stage_id: null,
+      })
 
       await logLeadActivity({
         leadId: lead.id,
@@ -303,7 +284,7 @@ export default function ArchivedLeadsPage() {
             <DialogTitle>Desarquivar lead?</DialogTitle>
             <DialogDescription>
               {pendingLead
-                ? `${leadDisplayName(pendingLead)} sairá da lista de arquivados e voltará para o Pool sem corretor atribuído.`
+                ? `${leadDisplayName(pendingLead)} sairá da lista de arquivados e voltará para o Pool sem vendedor atribuído.`
                 : "Confirme o desarquivamento do lead."}
             </DialogDescription>
           </DialogHeader>

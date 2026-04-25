@@ -6,6 +6,7 @@ import StatePanel from "@/components/crm/StatePanel"
 import StatCard from "@/components/crm/StatCard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/useAuth"
+import { fetchMetricLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, fetchLeadStages } from "@/lib/crmLeads"
 import { supabase } from "@/lib/supabase"
 import type { KanbanStage, Lead, Profile } from "@/types"
 
@@ -99,16 +100,8 @@ export default function MetricsPage() {
       setLoading(true)
 
       const [leadsResult, stagesResult, brokersResult] = await Promise.all([
-        supabase
-          .from("leads_lancamento")
-          .select(
-            "id,nome_completo,email,telefone_contato,status_conversa,corretor_id,stage_id,arquivado,created_at,first_response_at,origem"
-          )
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("kanban_stages")
-          .select("id,nome,ordem,cor,is_final")
-          .order("ordem", { ascending: true }),
+        fetchMetricLeads(),
+        fetchLeadStages(),
         supabase
           .from("profiles")
           .select("id,nome,email")
@@ -117,20 +110,12 @@ export default function MetricsPage() {
           .order("nome", { ascending: true }),
       ])
 
-      if (leadsResult.error) {
-        throw leadsResult.error
-      }
-
-      if (stagesResult.error) {
-        throw stagesResult.error
-      }
-
       if (brokersResult.error) {
         throw brokersResult.error
       }
 
-      setLeads((leadsResult.data ?? []) as MetricsLead[])
-      setStages((stagesResult.data ?? []) as KanbanStage[])
+      setLeads(leadsResult as MetricsLead[])
+      setStages(stagesResult as KanbanStage[])
       setBrokers((brokersResult.data ?? []) as BrokerSummary[])
       setError("")
     } catch (loadError) {
@@ -150,7 +135,14 @@ export default function MetricsPage() {
       .channel("metrics-dashboard")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "leads_lancamento" },
+        { event: "*", schema: "public", table: LEAD_SOURCE_TABLE },
+        () => {
+          void loadMetrics()
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: LEAD_STATE_TABLE },
         () => {
           void loadMetrics()
         }
@@ -208,7 +200,7 @@ export default function MetricsPage() {
 
         return {
           id: broker.id,
-          nome: broker.nome || broker.email || "Corretor sem nome",
+          nome: broker.nome || broker.email || "Vendedor sem nome",
           activeCount: brokerLeads.length,
           closedCount: brokerClosed,
         }
@@ -253,7 +245,7 @@ export default function MetricsPage() {
 
     const responseSamples = leads
       .filter((lead) => lead.created_at && lead.first_response_at)
-      .map((lead) => minutesBetween(lead.created_at, lead.first_response_at))
+      .map((lead) => minutesBetween(lead.created_at, lead.first_response_at!))
       .filter((value) => Number.isFinite(value))
 
     const averageResponseTime =
@@ -302,7 +294,7 @@ export default function MetricsPage() {
               <p className="mt-1 text-2xl font-semibold text-foreground">{leads.length}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.18em]">Corretores ativos</p>
+              <p className="text-xs uppercase tracking-[0.18em]">Vendedores ativos</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{brokers.length}</p>
             </div>
           </div>
@@ -411,12 +403,12 @@ export default function MetricsPage() {
 
           <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
             <ChartPanel
-              title="Top corretores"
+              title="Top vendedores"
               description="Quem está concentrando mais leads ativos e quem mais leva leads até Fechado."
             >
               <div className="space-y-3">
                 {metrics.topBrokers.length === 0 ? (
-                  <StatePanel dashed>Nenhum corretor ativo encontrado.</StatePanel>
+                  <StatePanel dashed>Nenhum vendedor ativo encontrado.</StatePanel>
                 ) : (
                   metrics.topBrokers.map((broker) => (
                     <div
@@ -453,7 +445,7 @@ export default function MetricsPage() {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Fila sem corretor</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Fila sem vendedor</p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.totals.pool}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Leads aguardando distribuição imediata no Pool.

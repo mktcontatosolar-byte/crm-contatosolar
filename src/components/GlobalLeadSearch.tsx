@@ -17,9 +17,9 @@ import {
   CommandSeparator,
 } from "@/components/ui/command"
 import { Skeleton } from "@/components/ui/skeleton"
-import { supabase } from "@/lib/supabase"
+import { fetchLeadBrokerMap, searchCrmLeads } from "@/lib/crmLeads"
 import { cn } from "@/lib/utils"
-import type { Lead, Profile } from "@/types"
+import type { Lead } from "@/types"
 
 type SearchLead = Pick<
   Lead,
@@ -75,46 +75,10 @@ function useDebouncedValue<T>(value: T, delay = 300) {
 }
 
 async function searchLeads(query: string): Promise<SearchLead[]> {
-  const normalized = query.trim()
-  if (normalized.length < 2) {
-    return []
-  }
-
-  const { data, error } = await supabase
-    .from("leads_lancamento")
-    .select("id,nome_completo,email,telefone_contato,status_conversa,corretor_id")
-    .or(`nome_completo.ilike.%${normalized}%,email.ilike.%${normalized}%,telefone_contato.ilike.%${normalized}%`)
-    .limit(20)
-
-  if (error) {
-    throw error
-  }
-
-  const leads = (data ?? []) as Array<
+  const leads = (await searchCrmLeads(query)) as Array<
     Pick<Lead, "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id">
   >
-
-  const brokerIds = [...new Set(leads.map((lead) => lead.corretor_id).filter(Boolean))]
-
-  if (brokerIds.length === 0) {
-    return leads.map((lead) => ({ ...lead, brokerName: null }))
-  }
-
-  const { data: brokersData, error: brokersError } = await supabase
-    .from("profiles")
-    .select("id,nome,email")
-    .in("id", brokerIds)
-
-  if (brokersError) {
-    throw brokersError
-  }
-
-  const brokersById = new Map(
-    ((brokersData ?? []) as Array<Pick<Profile, "id" | "nome" | "email">>).map((broker) => [
-      broker.id,
-      broker.nome || broker.email || "Corretor sem nome",
-    ])
-  )
+  const brokersById = await fetchLeadBrokerMap(leads)
 
   return leads.map((lead) => ({
     ...lead,
@@ -291,7 +255,7 @@ export default function GlobalLeadSearch({
 
                         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                           <span className="truncate">{lead.email || lead.telefone_contato || "Sem contato principal"}</span>
-                          <span>{lead.brokerName || "Sem corretor"}</span>
+                          <span>{lead.brokerName || "Sem vendedor"}</span>
                         </div>
                       </div>
                     </CommandItem>

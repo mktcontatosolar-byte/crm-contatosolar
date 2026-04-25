@@ -47,6 +47,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/useAuth"
+import {
+  fetchLeadById,
+  fetchLeadMessages,
+  LEAD_MESSAGES_TABLE,
+  LEAD_NOTES_TABLE,
+  LEAD_SOURCE_TABLE,
+  LEAD_STATE_TABLE,
+  updateLeadState,
+} from "@/lib/crmLeads"
 import { fetchLeadActivities, logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
@@ -192,10 +201,10 @@ function extractMessageRole(message: unknown): ChatMessage["role"] {
 
 function mapN8nMessages(
   rows: Array<{
-    id: string
+    id: string | number
     session_id: string
     message: unknown
-    created_at: string
+    created_at: string | null
   }>,
   leadId: string
 ): ChatMessage[] {
@@ -207,11 +216,11 @@ function mapN8nMessages(
       const role = extractMessageRole(row.message)
 
       return {
-        id: row.id,
+        id: String(row.id),
         lead_id: leadId,
         role,
         content,
-        created_at: row.created_at,
+        created_at: row.created_at ?? new Date().toISOString(),
       }
     })
     .filter((row) => {
@@ -293,9 +302,6 @@ export default function LeadDetailPage() {
   const leadSessionId = leadDetail?.remotejid ?? null
 
   const homePath = isAdmin ? "/" : "/kanban"
-  const detailSelect =
-    "id,remotejid,nome_completo,email,telefone_contato,horario_preferido,status_conversa,corretor_id,assumed_at,stage_id,arquivado,ia_paused,campanha,origem,outra_info,created_at,first_response_at,last_interaction_at"
-
   const activityQuery = useQuery({
     queryKey: ["lead-activity", id],
     queryFn: () => fetchLeadActivities(id!),
@@ -314,7 +320,7 @@ export default function LeadDetailPage() {
     }
 
     const { data: notesData, error: notesError } = await supabase
-      .from("lead_notes")
+      .from(LEAD_NOTES_TABLE)
       .select("id,lead_id,author_id,content,created_at")
       .eq("lead_id", id)
       .order("created_at", { ascending: false })
@@ -363,15 +369,7 @@ export default function LeadDetailPage() {
         setLoading(true)
       }
 
-      const { data: leadData, error: leadError } = await supabase
-        .from("leads_lancamento")
-        .select(detailSelect)
-        .eq("id", id)
-        .maybeSingle()
-
-      if (leadError) {
-        throw leadError
-      }
+      const leadData = await fetchLeadById(id!)
 
       if (!leadData) {
         setError("Lead não encontrado.")
@@ -388,19 +386,9 @@ export default function LeadDetailPage() {
         ? supabase.from("profiles").select("id,nome,email").eq("id", detail.corretor_id).maybeSingle()
         : Promise.resolve({ data: null, error: null })
 
-      const messagesPromise = detail.remotejid
-        ? supabase
-            .from("n8n_chat_histories_sdr")
-            .select("id,session_id,message,created_at")
-            .eq("session_id", detail.remotejid)
-            .order("created_at", { ascending: true })
-        : Promise.resolve({ data: [], error: null })
+      const messagesPromise = detail.remotejid ? fetchLeadMessages(detail.remotejid) : Promise.resolve([])
 
       const [messagesResult, brokerResult] = await Promise.all([messagesPromise, brokerPromise])
-
-      if (messagesResult.error) {
-        throw messagesResult.error
-      }
 
       if (brokerResult.error) {
         throw brokerResult.error
@@ -408,11 +396,11 @@ export default function LeadDetailPage() {
 
       setMessages(
         mapN8nMessages(
-          (messagesResult.data ?? []) as Array<{
-            id: string
+          (messagesResult ?? []) as Array<{
+            id: number
             session_id: string
             message: unknown
-            created_at: string
+            created_at: string | null
           }>,
           id!
         )
@@ -425,7 +413,7 @@ export default function LeadDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [detailSelect, id])
+  }, [id])
 
   async function updateLead(
     values: Partial<Pick<LeadDetail, "ia_paused" | "arquivado" | "corretor_id" | "assumed_at" | "stage_id">>,
@@ -438,14 +426,29 @@ export default function LeadDetailPage() {
     try {
       setUpdating(true)
 
-      const { error: updateError } = await supabase
-        .from("leads_lancamento")
-        .update(values)
-        .eq("id", id)
-
-      if (updateError) {
-        throw updateError
-      }
+      await updateLeadState(id, {
+        corretor_id:
+          Object.prototype.hasOwnProperty.call(values, "corretor_id")
+            ? (values.corretor_id ?? null)
+            : (leadDetail?.corretor_id ?? null),
+        assumed_at:
+          Object.prototype.hasOwnProperty.call(values, "assumed_at")
+            ? (values.assumed_at ?? null)
+            : (leadDetail?.assumed_at ?? null),
+        stage_id:
+          Object.prototype.hasOwnProperty.call(values, "stage_id")
+            ? (values.stage_id ?? null)
+            : (leadDetail?.stage_id ?? null),
+        arquivado:
+          Object.prototype.hasOwnProperty.call(values, "arquivado")
+            ? (values.arquivado ?? false)
+            : (leadDetail?.arquivado ?? false),
+        ia_paused:
+          Object.prototype.hasOwnProperty.call(values, "ia_paused")
+            ? (values.ia_paused ?? false)
+            : (leadDetail?.ia_paused ?? false),
+        first_response_at: leadDetail?.first_response_at ?? null,
+      })
 
       const nextActivity =
         values.ia_paused === true
@@ -511,7 +514,7 @@ export default function LeadDetailPage() {
     try {
       setSavingNote(true)
 
-      const { error: insertError } = await supabase.from("lead_notes").insert({
+      const { error: insertError } = await supabase.from(LEAD_NOTES_TABLE).insert({
         lead_id: id,
         author_id: user.id,
         content,
@@ -544,7 +547,7 @@ export default function LeadDetailPage() {
   const updateNoteMutation = useMutation({
     mutationFn: async ({ noteId, content }: { noteId: string; content: string }) => {
       const { error: updateError } = await supabase
-        .from("lead_notes")
+        .from(LEAD_NOTES_TABLE)
         .update({ content })
         .eq("id", noteId)
 
@@ -567,7 +570,7 @@ export default function LeadDetailPage() {
 
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: string) => {
-      const { error: deleteError } = await supabase.from("lead_notes").delete().eq("id", noteId)
+      const { error: deleteError } = await supabase.from(LEAD_NOTES_TABLE).delete().eq("id", noteId)
 
       if (deleteError) {
         throw deleteError
@@ -602,7 +605,14 @@ export default function LeadDetailPage() {
       .channel(`lead-detail-page-${id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "leads_lancamento", filter: `id=eq.${id}` },
+        { event: "*", schema: "public", table: LEAD_STATE_TABLE, filter: `lead_id=eq.${id}` },
+        () => {
+          void loadDetails({ silent: true })
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: LEAD_SOURCE_TABLE, filter: `id=eq.${id}` },
         () => {
           void loadDetails({ silent: true })
         }
@@ -612,7 +622,7 @@ export default function LeadDetailPage() {
         {
           event: "*",
           schema: "public",
-          table: "n8n_chat_histories_sdr",
+          table: LEAD_MESSAGES_TABLE,
           ...(leadSessionId ? { filter: `session_id=eq.${leadSessionId}` } : {}),
         },
         () => {
@@ -621,7 +631,7 @@ export default function LeadDetailPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "lead_notes", filter: `lead_id=eq.${id}` },
+        { event: "*", schema: "public", table: LEAD_NOTES_TABLE, filter: `lead_id=eq.${id}` },
         () => {
           void queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
         }
@@ -836,10 +846,10 @@ export default function LeadDetailPage() {
                     value={formatDateTime(leadDetail.last_interaction_at)}
                   />
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-foreground">Corretor atribuído</p>
+                    <p className="text-sm font-medium text-foreground">Vendedor atribuído</p>
                     <div className="mt-3">
                       <Badge className="min-h-7 rounded-full px-3 text-sm">
-                        {assignedBroker?.nome || assignedBroker?.email || "Sem corretor"}
+                        {assignedBroker?.nome || assignedBroker?.email || "Sem vendedor"}
                       </Badge>
                     </div>
                   </div>
@@ -1016,7 +1026,7 @@ export default function LeadDetailPage() {
                   <CardDescription>
                     {canAddNote
                       ? "Registre um contexto interno para o time."
-                      : "Somente admin ou o corretor responsável podem adicionar notas."}
+                      : "Somente admin ou o vendedor responsável podem adicionar notas."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

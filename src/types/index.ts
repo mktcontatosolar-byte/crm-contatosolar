@@ -45,8 +45,8 @@ export type Lead = {
   arquivado: boolean
   ia_paused: boolean
   followup_count: number
-  first_response_at: string
-  last_interaction_at: string
+  first_response_at: string | null
+  last_interaction_at: string | null
   created_at: string
   corretor?: Profile
   stage?: KanbanStage
