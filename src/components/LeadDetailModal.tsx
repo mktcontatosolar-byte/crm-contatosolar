@@ -435,7 +435,7 @@ export default function LeadDetailModal({
                       icon={MessageSquareText}
                     />
                     <DetailItem
-                      label="Vendedor atribuído"
+                      label="Responsável pelo lead"
                       value={assignedBroker?.nome || assignedBroker?.email || "Nenhum vendedor atribuído"}
                       icon={UserRound}
                     />
@@ -491,7 +491,7 @@ export default function LeadDetailModal({
                   </div>
 
                   <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-foreground">Redistribuição</p>
+                    <p className="text-sm font-medium text-foreground">Voltar para a fila</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       Remove a atribuição atual e devolve o lead para a fila inicial.
                     </p>
@@ -511,7 +511,7 @@ export default function LeadDetailModal({
                         )
                       }
                     >
-                      Devolver para Pool
+                      Voltar para a fila
                     </Button>
                   </div>
 
@@ -587,7 +587,7 @@ export default function LeadDetailModal({
                     <span>
                       {canAddNote
                         ? "Notas ficam visíveis apenas para a equipe."
-                        : "Você precisa ser admin ou vendedor responsável para registrar notas."}
+                        : "Voc? precisa ser admin ou vendedor responsável para registrar notas."}
                     </span>
                     <span>{newNote.trim().length} caractere(s)</span>
                   </div>
@@ -605,7 +605,7 @@ export default function LeadDetailModal({
 
                 <div className="space-y-3 rounded-[1.75rem] border border-border/60 bg-muted/25 p-4 sm:p-5">
                   <div>
-                    <h2 className="text-base font-semibold text-foreground">Histórico da conversa</h2>
+                    <h2 className="text-base font-semibold text-foreground">Mensagens trocadas</h2>
                     <p className="text-sm text-muted-foreground">
                       Registros completos da tabela chat_history para este lead.
                     </p>

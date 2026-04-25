@@ -99,7 +99,7 @@ function getSupabaseErrorMessage(error: unknown, fallback: string) {
   }
 
   if (candidate.code === "42501") {
-    return "Sem permissÃ£o para salvar nota interna. Verifique a policy de INSERT da tabela lead_notes."
+    return "Sem permissÃ£o para salvar a observaÃ§Ã£o. Verifique a policy de INSERT da tabela lead_notes."
   }
 
   return candidate.details || candidate.hint || candidate.message || fallback
@@ -373,7 +373,7 @@ export default function LeadDetailPage() {
 
   const loadDetails = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!id) {
-      setError("Lead nÃ£o encontrado.")
+      setError("Lead não encontrado.")
       setLoading(false)
     }
 
@@ -385,7 +385,7 @@ export default function LeadDetailPage() {
       const leadData = await fetchLeadById(id!)
 
       if (!leadData) {
-        setError("Lead nÃ£o encontrado.")
+        setError("Lead não encontrado.")
         setLeadDetail(null)
         setAssignedBroker(null)
         setMessages([])
@@ -422,7 +422,7 @@ export default function LeadDetailPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar detalhe do lead:", loadError)
-      setError("NÃ£o foi possÃ­vel carregar os detalhes do lead.")
+      setError("NÃ£o conseguimos abrir esse lead agora.")
     } finally {
       setLoading(false)
     }
@@ -542,8 +542,8 @@ export default function LeadDetailPage() {
       await loadDetails({ silent: true })
     } catch (updateError) {
       console.error("Erro ao atualizar lead:", updateError)
-      setError("NÃ£o foi possÃ­vel atualizar o lead.")
-      toast.error("NÃ£o foi possÃ­vel atualizar o lead.")
+      setError("NÃ£o foi possÃ­vel atualizar esse lead agora.")
+      toast.error("NÃ£o foi possÃ­vel atualizar esse lead agora.")
     } finally {
       setUpdating(false)
       setPendingAction(null)
@@ -552,7 +552,7 @@ export default function LeadDetailPage() {
 
   async function saveNote() {
     if (!id || !user || !canAddNote) {
-      setError("VocÃª nÃ£o tem permissÃ£o para adicionar nota neste lead.")
+      setError("VocÃª nÃ£o pode adicionar observaÃ§Ãµes neste lead.")
       return
     }
 
@@ -597,13 +597,13 @@ export default function LeadDetailPage() {
       console.error("Erro ao salvar nota interna:", saveError)
       const message = getSupabaseErrorMessage(
         saveError,
-        "NÃ£o foi possÃ­vel salvar a nota interna."
+        "NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o."
       )
       setError(message)
       toast.error(message)
       return
-      setError("NÃ£o foi possÃ­vel salvar a nota interna.")
-      toast.error("NÃ£o foi possÃ­vel salvar a nota interna.")
+      setError("NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o.")
+      toast.error("NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o.")
     } finally {
       setSavingNote(false)
     }
@@ -642,7 +642,7 @@ export default function LeadDetailPage() {
       toast.success("Nota atualizada com sucesso.")
     },
     onError: (updateError) => {
-      const message = getSupabaseErrorMessage(updateError, "NÃƒÂ£o foi possÃƒÂ­vel atualizar a nota.")
+      const message = getSupabaseErrorMessage(updateError, "NÃ£o foi possÃ­vel atualizar a observaÃ§Ã£o.")
       setError(message)
       toast.error(message)
     },
@@ -664,7 +664,7 @@ export default function LeadDetailPage() {
           entityType: "lead_note",
           entityId: pendingDeleteNote?.id ?? null,
           action: "note_deleted",
-          description: "Nota interna excluÃ­da",
+          description: "Nota interna excluída",
           beforeData: pendingDeleteNote
             ? {
                 content: pendingDeleteNote.content,
@@ -679,10 +679,10 @@ export default function LeadDetailPage() {
       setEditingNoteId(null)
       setEditingNoteContent("")
       await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
-      toast.success("Nota excluÃƒÂ­da com sucesso.")
+      toast.success("Nota excluída com sucesso.")
     },
     onError: (deleteError) => {
-      const message = getSupabaseErrorMessage(deleteError, "NÃƒÂ£o foi possÃƒÂ­vel excluir a nota.")
+      const message = getSupabaseErrorMessage(deleteError, "NÃ£o foi possÃ­vel excluir a observaÃ§Ã£o.")
       setError(message)
       toast.error(message)
     },
@@ -785,13 +785,13 @@ export default function LeadDetailPage() {
       title: leadDetail?.ia_paused ? "Reativar IA" : "Pausar IA",
       description: leadDetail?.ia_paused
         ? "A IA voltara a atuar neste atendimento."
-        : "A IA serÃ¡ pausada neste lead, mantendo todo o histÃ³rico.",
+        : "A IA ser?f?'?,? pausada neste lead, mantendo todo o histórico.",
       confirmLabel: leadDetail?.ia_paused ? "Reativar" : "Pausar",
       run: () => updateLead({ ia_paused: !leadDetail?.ia_paused }, "refresh"),
     },
     "return-pool": {
       title: "Voltar para a fila",
-      description: "Esse lead vai sair da carteira atual e ficar disponível para nova distribuição.",
+      description: "Esse lead vai sair da carteira atual e ficar disponÃ­vel para nova distribuiÃ§Ã£o.",
       confirmLabel: "Devolver",
       run: () =>
         updateLead(
@@ -805,7 +805,7 @@ export default function LeadDetailPage() {
     },
     archive: {
       title: "Arquivar lead",
-      description: "O lead serÃ¡ retirado das filas operacionais ativas.",
+      description: "O lead será retirado das listas ativas.",
       confirmLabel: "Arquivar",
       run: () => updateLead({ arquivado: true }, "remove"),
     },
@@ -831,7 +831,7 @@ export default function LeadDetailPage() {
   }
 
   function activityUserName(activity: LeadActivity) {
-    return activity.usuario?.nome || activity.usuario?.email || "UsuÃ¡rio da equipe"
+    return activity.usuario?.nome || activity.usuario?.email || "Usuário da equipe"
   }
 
   return (
@@ -893,7 +893,7 @@ export default function LeadDetailPage() {
         </StatePanel>
       ) : null}
 
-      {!loading && !leadDetail ? <StatePanel centered={false}>Lead nÃ£o encontrado.</StatePanel> : null}
+      {!loading && !leadDetail ? <StatePanel centered={false}>Lead não encontrado.</StatePanel> : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="no-scrollbar">
@@ -910,7 +910,7 @@ export default function LeadDetailPage() {
             <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Dados principais</CardTitle>
-                <CardDescription>Contato, origem e informações principais deste lead.</CardDescription>
+                <CardDescription>Contato, origem e informaÃ§Ãµes principais deste lead.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex justify-end">
@@ -956,7 +956,7 @@ export default function LeadDetailPage() {
                     value={formatDateTime(leadDetail.last_interaction_at)}
                   />
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-foreground">Vendedor atribuÃ­do</p>
+                    <p className="text-sm font-medium text-foreground">ResponsÃ¡vel pelo lead</p>
                     <div className="mt-3">
                       <Badge className="min-h-7 rounded-full px-3 text-sm">
                         {assignedBroker?.nome || assignedBroker?.email || "Vazio"}
@@ -984,8 +984,8 @@ export default function LeadDetailPage() {
                 },
                 {
                   key: "return-pool" as const,
-                  title: "RedistribuiÃ§Ã£o",
-                  description: "Esse lead sai da carteira atual e volta para a fila de distribuição.",
+                  title: "Voltar para a fila",
+                  description: "Esse lead sai da carteira atual e volta para a fila de distribuiÃ§Ã£o.",
                   icon: RotateCcw,
                   buttonLabel: "Voltar para a fila",
                 },
@@ -1145,8 +1145,8 @@ export default function LeadDetailPage() {
                     disabled={!canAddNote || savingNote}
                     placeholder={
                       canAddNote
-                        ? "Escreva uma observaÃ§Ã£o interna sobre este lead"
-                        : "VocÃª nÃ£o pode registrar nota neste lead"
+                        ? "Escreva uma observação sobre este lead"
+                        : "VocÃª nÃ£o pode registrar observaÃ§Ãµes neste lead"
                     }
                     onChange={(event) => setNewNote(event.target.value)}
                     className="min-h-40 rounded-2xl text-sm"
@@ -1212,7 +1212,7 @@ export default function LeadDetailPage() {
                                 <p className="text-sm font-medium text-foreground">{activity.descricao}</p>
                                 <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                                   <span>{activityUserName(activity)}</span>
-                                  <span className="hidden sm:inline">â€¢</span>
+                                  <span className="hidden sm:inline">?</span>
                                   <span>{formatRelativeTime(activity.created_at)}</span>
                                 </div>
                               </div>
@@ -1297,10 +1297,10 @@ export default function LeadDetailPage() {
         <DialogContent showCloseButton>
           <DialogHeader>
             <DialogTitle>
-              {pendingAction ? actionCopy[pendingAction].title : "Confirmar aÃ§Ã£o"}
+              {pendingAction ? actionCopy[pendingAction].title : "Confirmar ação"}
             </DialogTitle>
             <DialogDescription>
-              {pendingAction ? actionCopy[pendingAction].description : "Confirme a aÃ§Ã£o neste lead."}
+              {pendingAction ? actionCopy[pendingAction].description : "Confirme a ação neste lead."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1338,8 +1338,8 @@ export default function LeadDetailPage() {
             <DialogTitle>Excluir nota?</DialogTitle>
             <DialogDescription>
               {pendingDeleteNote
-                ? `A nota de ${pendingDeleteNote.authorProfile?.nome || pendingDeleteNote.authorProfile?.email || "autor desconhecido"} serÃƒÂ¡ removida permanentemente.`
-                : "Confirme a exclusÃƒÂ£o desta nota interna."}
+                ? `A nota de ${pendingDeleteNote.authorProfile?.nome || pendingDeleteNote.authorProfile?.email || "autor desconhecido"} será removida permanentemente.`
+                : "Confirme a exclusÃ£o desta nota interna."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1361,7 +1361,7 @@ export default function LeadDetailPage() {
                 pendingDeleteNote ? void deleteNoteMutation.mutateAsync(pendingDeleteNote.id) : undefined
               }
             >
-              {deleteNoteMutation.isPending ? "Excluindo..." : "Confirmar exclusÃƒÂ£o"}
+              {deleteNoteMutation.isPending ? "Excluindo..." : "Confirmar exclusão"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -121,7 +121,7 @@ export default function Sidebar() {
     ...(isAdmin
       ? [
           {
-            label: "Pool de Leads",
+            label: "Leads sem responsável",
             icon: Users,
             path: "/",
           },

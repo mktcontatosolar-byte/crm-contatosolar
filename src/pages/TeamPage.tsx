@@ -47,7 +47,7 @@ type BrokerLead = Pick<
 
 const newUserSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do usuÃ¡rio."),
-  email: z.email("Informe um e-mail vÃ¡lido."),
+  email: z.email("Informe um e-mail válido."),
   password: z.string().min(6, "A senha inicial precisa ter ao menos 6 caracteres."),
   role: z.enum(["corretor", "admin"]),
   ativo: z.enum(["true", "false"]),
@@ -186,7 +186,7 @@ export default function TeamPage() {
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : "NÃ£o foi possÃ­vel criar o usuÃ¡rio."
+        error instanceof Error ? error.message : "NÃƒÂ£o foi possÃƒÂ­vel criar o usuÃƒÂ¡rio."
       toast.error(message)
     },
   })
@@ -232,7 +232,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃ£o foi possÃ­vel atualizar este usuÃ¡rio.")
+      toast.error("NÃƒÂ£o foi possÃƒÂ­vel atualizar este usuÃƒÂ¡rio.")
     },
   })
 
@@ -251,7 +251,7 @@ export default function TeamPage() {
           entityId: pendingDeletion?.member.id ?? null,
           action: "user_deleted",
           description: pendingDeletion
-            ? `UsuÃ¡rio ${displayName(pendingDeletion.member)} excluÃ­do`
+            ? `Usuário ${displayName(pendingDeletion.member)} excluído`
             : "UsuÃ¡rio excluÃ­do",
           beforeData: pendingDeletion
             ? {
@@ -276,11 +276,11 @@ export default function TeamPage() {
       }
 
       if (isSelfDeleteError(error)) {
-        toast.error("VocÃª nÃ£o pode excluir sua prÃ³pria conta por este fluxo.")
+        toast.error("Você não pode excluir sua própria conta por este fluxo.")
         return
       }
 
-      toast.error(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel excluir o usuÃ¡rio.")
+      toast.error(error instanceof Error ? error.message : "NÃƒÂ£o foi possÃƒÂ­vel excluir o usuÃƒÂ¡rio.")
     },
   })
 
@@ -327,7 +327,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃ£o foi possÃ­vel devolver o lead para o Pool.")
+      toast.error("NÃƒÂ£o foi possÃƒÂ­vel devolver esse lead para a fila.")
     },
   })
 
@@ -387,7 +387,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃ£o foi possÃ­vel devolver todos os leads para o Pool.")
+      toast.error("NÃƒÂ£o foi possÃƒÂ­vel devolver todos os leads para a fila.")
     },
   })
 
@@ -523,7 +523,7 @@ export default function TeamPage() {
         badge="Pessoas e permissÃµes"
         badgeTone="amber"
         title="Equipe"
-        description="Gerencie acessos do time comercial, acompanhe carga por vendedor e execute criaÃ§Ã£o ou exclusÃ£o por backend seguro."
+        description="Cadastre usuÃ¡rios, acompanhe a equipe e organize a distribuiÃ§Ã£o dos leads."
         aside={
           <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
@@ -542,7 +542,7 @@ export default function TeamPage() {
         <StatePanel tone="error" centered={false}>
           {teamQuery.error instanceof Error
             ? teamQuery.error.message
-            : "NÃ£o foi possÃ­vel carregar a equipe."}
+            : "Não foi possível carregar a equipe."}
         </StatePanel>
       ) : null}
 
@@ -567,7 +567,7 @@ export default function TeamPage() {
             accent: "text-violet-600 dark:text-violet-300",
           },
           {
-            label: "Leads atribuÃ­dos",
+            label: "Leads em atendimento",
             value: summary.totalAssigned,
             icon: ShieldCheck,
             accent: "text-sky-600 dark:text-sky-300",
@@ -639,7 +639,7 @@ export default function TeamPage() {
                   <Input
                     id="team-password"
                     type="password"
-                    placeholder="MÃ­nimo de 6 caracteres"
+                    placeholder="Mínimo de 6 caracteres"
                     autoComplete="new-password"
                     disabled={createUserMutation.isPending}
                     aria-invalid={form.formState.errors.password ? "true" : "false"}
@@ -676,7 +676,7 @@ export default function TeamPage() {
                 >
                   {createUserMutation.error instanceof Error
                     ? createUserMutation.error.message
-                    : "NÃ£o foi possÃ­vel criar o usuÃ¡rio."}
+                    : "NÃƒÂ£o foi possÃƒÂ­vel criar o usuÃƒÂ¡rio."}
                 </p>
               ) : null}
 
@@ -699,7 +699,7 @@ export default function TeamPage() {
               <Crown className="h-5 w-5 text-violet-600 dark:text-violet-300" />
               Administradores
             </CardTitle>
-            <CardDescription>VisÃ£o da camada de controle do sistema.</CardDescription>
+            <CardDescription>Pessoas com acesso administrativo ao sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {teamQuery.isLoading ? <StatePanel>Carregando administradores...</StatePanel> : null}
@@ -824,7 +824,7 @@ export default function TeamPage() {
                         <div className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/80 p-3 text-center">
                           <p className="whitespace-nowrap text-xs tracking-[0.16em] text-muted-foreground">Status</p>
                           <p className="mt-2 whitespace-nowrap text-sm font-medium text-foreground">
-                            {member.ativo ? "DisponÃ­vel" : "Fora da operaÃ§Ã£o"}
+                            {member.ativo ? "Disponível" : "Fora da operação"}
                           </p>
                         </div>
                         <div className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/80 p-3 text-center">
@@ -879,7 +879,7 @@ export default function TeamPage() {
                       </div>
 
                       <p className="mt-3 min-w-0 text-xs text-muted-foreground">
-                        A exclusÃ£o definitiva apaga o acesso de autenticaÃ§Ã£o e o profile quando nÃ£o hÃ¡ leads ativos vinculados.
+                        A exclusão definitiva remove o acesso da pessoa quando não há leads ativos vinculados.
                       </p>
                     </div>
                   )
@@ -904,11 +904,11 @@ export default function TeamPage() {
           {brokerForRedistribution ? (
             <div className="space-y-3">
               <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-                {leadsForSelectedBroker.length} lead(s) ativo(s) atribuÃ­dos a este vendedor.
+                {leadsForSelectedBroker.length} lead(s) ativo(s) em atendimento com este vendedor.
               </div>
 
               {leadsForSelectedBroker.length === 0 ? (
-                <StatePanel centered={false}>Nenhum lead ativo para redistribuir.</StatePanel>
+                <StatePanel centered={false}>Nenhum lead para repassar.</StatePanel>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-end">
@@ -924,7 +924,7 @@ export default function TeamPage() {
                         })
                       }
                     >
-                      {redistributeAllLeadsMutation.isPending ? "Devolvendo todos..." : "Devolver todos"}
+                      {redistributeAllLeadsMutation.isPending ? "Voltando todos para a fila..." : "Voltar todos para a fila"}
                     </Button>
                   </div>
 
@@ -979,9 +979,9 @@ export default function TeamPage() {
             <DialogDescription>
               {pendingStatusChange
                 ? pendingStatusChange.nextActiveState
-                  ? `${displayName(pendingStatusChange.member)} voltarÃ¡ a acessar o CRM normalmente.`
-                  : `${displayName(pendingStatusChange.member)} perderÃ¡ acesso ao CRM, mas todos os leads, notas e atividades serÃ£o preservados.`
-                : "Confirme a alteraÃ§Ã£o de acesso deste usuÃ¡rio."}
+                  ? `${displayName(pendingStatusChange.member)} poderÃƒÂ¡ acessar o CRM normalmente novamente.`
+                  : `${displayName(pendingStatusChange.member)} ficarÃƒÂ¡ sem acesso ao CRM, mas os leads, notas e atividades serÃƒÂ£o mantidos.`
+                : "Confirme a altera?f?'?,??f?'?,?o de acesso deste usuário."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1004,8 +1004,8 @@ export default function TeamPage() {
               {toggleStatusMutation.isPending
                 ? "Atualizando..."
                 : pendingStatusChange?.nextActiveState
-                  ? "Confirmar reativaÃ§Ã£o"
-                  : "Confirmar inativaÃ§Ã£o"}
+                  ? "Confirmar reativação"
+                  : "Confirmar pausa"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1015,10 +1015,10 @@ export default function TeamPage() {
         <DialogContent showCloseButton className="rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>
-              Excluir {pendingDeletion ? displayName(pendingDeletion.member) : "usuÃ¡rio"}?
+              Excluir {pendingDeletion ? displayName(pendingDeletion.member) : "usuário"}?
             </DialogTitle>
             <DialogDescription>
-              Essa aÃ§Ã£o remove o acesso do Auth e o registro em <code>profiles</code>. NÃ£o hÃ¡ desfazer por esta tela.
+              Essa aÃ§Ã£o remove o acesso dessa pessoa ao sistema. NÃ£o hÃ¡ desfazer por esta tela.
             </DialogDescription>
           </DialogHeader>
 
@@ -1039,7 +1039,7 @@ export default function TeamPage() {
               onClick={() => void confirmDeletion()}
               disabled={deleteUserMutation.isPending}
             >
-              {deleteUserMutation.isPending ? "Excluindo..." : "Confirmar exclusÃ£o"}
+              {deleteUserMutation.isPending ? "Excluindo..." : "Confirmar exclusão"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1051,10 +1051,10 @@ export default function TeamPage() {
             <DialogTitle>Voltar esse lead para a fila?</DialogTitle>
             <DialogDescription>
               {pendingRedistribution
-                ? `${displayLeadName(pendingRedistribution.lead)} serÃ¡ removido da carteira de ${displayName(
+                ? `${displayLeadName(pendingRedistribution.lead)} vai sair da carteira de ${displayName(
                     pendingRedistribution.broker
-                  )} e voltarÃ¡ para o Pool.`
-                : "Confirme a redistribuiÃ§Ã£o do lead."}
+                  )} e voltarÃ¡ para a fila.`
+                : "Confirme se esse lead deve voltar para a fila."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1077,7 +1077,7 @@ export default function TeamPage() {
                   : undefined
               }
             >
-              {redistributeLeadMutation.isPending ? "Devolvendo..." : "Confirmar"}
+              {redistributeLeadMutation.isPending ? "Voltando para a fila..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>

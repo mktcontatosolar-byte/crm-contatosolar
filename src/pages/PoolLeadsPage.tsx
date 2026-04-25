@@ -82,7 +82,7 @@ function formatRelativeTime(dateString: string) {
 }
 
 function leadDisplayName(lead: PoolLead) {
-  return lead.nome_completo || lead.numero || "Lead sem identificaÃ§Ã£o"
+  return lead.nome_completo || lead.numero || "Lead sem identificação"
 }
 
 function getInitials(value: string) {
@@ -227,7 +227,7 @@ export default function PoolLeadsPage() {
         leadId,
         usuarioId: user?.id ?? null,
         tipo: "atribuicao",
-        descricao: `Lead atribuÃ­do para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
+        descricao: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
         metadata: {
           corretor_id: corretorId,
         },
@@ -240,7 +240,7 @@ export default function PoolLeadsPage() {
           entityType: "lead",
           entityId: leadId,
           action: "lead_assigned",
-          description: `Lead atribuÃ­do para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
+          description: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
           afterData: {
             corretor_id: corretorId,
             assumed_at: "set_now",
@@ -266,7 +266,7 @@ export default function PoolLeadsPage() {
       })
       setPendingAssignment(null)
       setError("")
-      toast.success("Lead atribuÃ­do com sucesso.")
+      toast.success("Lead enviado com sucesso.")
     } catch (assignError) {
       console.error("Erro ao atribuir lead:", assignError)
       setError("Não foi possível enviar esse lead agora.")
@@ -396,7 +396,7 @@ export default function PoolLeadsPage() {
           {[
             {
               icon: Phone,
-              label: "NÃºmero",
+              label: "Telefone",
               value: formatSupabaseValue(selectedLead.numero),
             },
             {
@@ -421,7 +421,7 @@ export default function PoolLeadsPage() {
             },
             {
               icon: CircleAlert,
-              label: "UrgÃªncia",
+              label: "Urgência",
               value: formatSupabaseValue(selectedLead.urgencia),
             },
             {
@@ -469,7 +469,7 @@ export default function PoolLeadsPage() {
             <SelectTrigger id={`pool-broker-${selectedLead.id}`} className="text-sm">
               <SelectValue
                 placeholder={
-                  corretores.length === 0 ? "Nenhum vendedor ativo disponÃ­vel" : "Selecione um vendedor"
+                  corretores.length === 0 ? "Não há vendedores disponíveis no momento" : "Escolha um vendedor"
                 }
               />
             </SelectTrigger>
@@ -506,7 +506,7 @@ export default function PoolLeadsPage() {
                 : undefined
             }
           >
-            {assigningLeadId === selectedLead.id ? "Atribuindo..." : "Atribuir"}
+            {assigningLeadId === selectedLead.id ? "Enviando..." : "Atribuir"}
           </Button>
 
           <TooltipProvider>
@@ -522,7 +522,7 @@ export default function PoolLeadsPage() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={8}>
-                Abre a pÃ¡gina completa com histÃ³rico e operaÃ§Ãµes do lead.
+                Abre a pÃ¡gina completa com conversa, observaÃ§Ãµes e aÃ§Ãµes do lead.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -538,7 +538,7 @@ export default function PoolLeadsPage() {
         <div className="space-y-2">
           <p className="text-lg font-semibold text-foreground">Selecione um lead para ver os detalhes</p>
           <p className="text-sm text-muted-foreground">
-            Aqui vocÃª vÃª os dados principais do lead e jÃ¡ escolhe quem vai atender.
+            Aqui você vê os dados principais do lead e já escolhe quem vai atender.
           </p>
         </div>
       </CardContent>
@@ -706,7 +706,7 @@ export default function PoolLeadsPage() {
             <DialogDescription>
               {pendingAssignment && pendingBroker
                 ? `Atribuir ${leadDisplayName(pendingAssignment.lead)} para ${pendingBroker.nome || pendingBroker.email}?`
-                : "Você quer enviar esse lead para esse vendedor?"}
+                : "Voc? quer enviar esse lead para esse vendedor?"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -724,7 +724,7 @@ export default function PoolLeadsPage() {
               }
             >
               {pendingAssignment && assigningLeadId === pendingAssignment.lead.id
-                ? "Atribuindo..."
+                ? "Enviando..."
                 : "Confirmar"}
             </Button>
           </DialogFooter>

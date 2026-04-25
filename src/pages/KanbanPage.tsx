@@ -93,7 +93,7 @@ type StageMovePayload = {
 }
 
 function leadDisplayName(lead: KanbanLead) {
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificaÃ§Ã£o"
+  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
 function normalizeOrigin(origin: string | null | undefined) {
@@ -176,7 +176,7 @@ function LeadCardBody({
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="ghost" size="icon-sm" className="rounded-xl">
                   <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Abrir aÃ§Ãµes do lead</span>
+                  <span className="sr-only">Abrir ações do lead</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -226,7 +226,7 @@ function LeadCardBody({
             </SelectContent>
           </SelectRoot>
           <p className="text-xs text-muted-foreground">
-            {movingLeadId === lead.id ? "Atualizando etapa..." : "Escolha a prÃ³xima etapa deste lead."}
+            {movingLeadId === lead.id ? "Atualizando etapa..." : "Selecione em qual etapa esse lead está agora."}
           </p>
         </div>
 
@@ -475,7 +475,7 @@ export default function KanbanPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar kanban:", loadError)
-      setError("NÃ£o foi possÃ­vel carregar o kanban.")
+      setError("NÃ£o conseguimos carregar os leads agora.")
     } finally {
       setLoading(false)
     }
@@ -535,7 +535,7 @@ export default function KanbanPage() {
       await loadKanban({ silent: true })
     },
     onError: () => {
-      toast.error("NÃ£o foi possÃ­vel devolver o lead para o Pool.")
+      toast.error("NÃ£o foi possÃ­vel devolver esse lead para a fila.")
     },
   })
 
@@ -543,7 +543,7 @@ export default function KanbanPage() {
     mutationFn: async ({ lead, stageId }: StageMovePayload) => {
       const stage = stages.find((item) => item.id === stageId)
       if (!stage) {
-        throw new Error("Etapa invÃ¡lida.")
+        throw new Error("Etapa inválida.")
       }
 
       await updateLeadState(lead.id, {
@@ -609,8 +609,8 @@ export default function KanbanPage() {
     onError: (moveError, _variables, context) => {
       console.error("Erro ao mover lead:", moveError)
       setLeads(context?.previousLeads ?? rollbackLeads ?? leads)
-      setError("NÃ£o foi possÃ­vel mover o lead para a etapa selecionada.")
-      toast.error("NÃ£o foi possÃ­vel mover o lead.")
+      setError("NÃ£o foi possÃ­vel mover o lead para a etapa escolhida.")
+      toast.error("NÃ£o foi possÃ­vel mover esse lead.")
     },
     onSettled: async () => {
       setMovingLeadId(null)
@@ -742,15 +742,15 @@ export default function KanbanPage() {
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor="kanban-created-filter">Data de criaÃ§Ã£o</Label>
+        <Label htmlFor="kanban-created-filter">Data de criação</Label>
         <SelectRoot value={creationDateFilter} onValueChange={(value) => setCreationDateFilter(value as CreationDateFilter)}>
           <SelectTrigger id="kanban-created-filter" className="min-h-11 rounded-2xl bg-background/80">
             <SelectValue placeholder="Todas as datas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="today">Hoje</SelectItem>
-            <SelectItem value="7d">Ãšltimos 7 dias</SelectItem>
-            <SelectItem value="30d">Ãšltimos 30 dias</SelectItem>
+            <SelectItem value="7d">Últimos 7 dias</SelectItem>
+            <SelectItem value="30d">Últimos 30 dias</SelectItem>
             <SelectItem value="all">Todos</SelectItem>
           </SelectContent>
         </SelectRoot>
@@ -868,7 +868,7 @@ export default function KanbanPage() {
 
       {error ? <StatePanel tone="error" centered={false}>{error}</StatePanel> : null}
 
-      {loading ? <StatePanel>Carregando etapas, leads atribuÃ­dos e tags do kanban...</StatePanel> : null}
+      {loading ? <StatePanel>Carregando seus leads...</StatePanel> : null}
 
       {!loading && stages.length === 0 ? (
         <StatePanel tone="warning" centered={false}>
@@ -961,8 +961,8 @@ export default function KanbanPage() {
             <DialogTitle>Remover esse lead da carteira?</DialogTitle>
             <DialogDescription>
               {pendingRedistribution
-                ? `${leadDisplayName(pendingRedistribution)} serÃ¡ removido da carteira atual e voltarÃ¡ para o Pool.`
-                : "Confirme a redistribuiÃ§Ã£o do lead."}
+                ? `${leadDisplayName(pendingRedistribution)} vai sair da carteira atual e voltar para a fila.`
+                : "Confirme se esse lead deve voltar para a fila."}
             </DialogDescription>
           </DialogHeader>
 
@@ -983,7 +983,7 @@ export default function KanbanPage() {
                 pendingRedistribution ? void redistributeLeadMutation.mutateAsync(pendingRedistribution) : undefined
               }
             >
-              {redistributeLeadMutation.isPending ? "Devolvendo..." : "Confirmar"}
+              {redistributeLeadMutation.isPending ? "Voltando para a fila..." : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
