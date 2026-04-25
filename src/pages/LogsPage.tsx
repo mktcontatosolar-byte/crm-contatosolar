@@ -1,0 +1,243 @@
+import { useDeferredValue, useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { Filter, History, ShieldCheck, UserRound, X } from "lucide-react"
+
+import PageIntro from "@/components/crm/PageIntro"
+import StatePanel from "@/components/crm/StatePanel"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { useAuth } from "@/contexts/useAuth"
+import { fetchAuditLogs } from "@/lib/auditLogs"
+import { formatSupabaseValue } from "@/lib/utils"
+
+function formatDateTime(dateString: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(dateString))
+}
+
+function JsonBlock({ value }: { value: Record<string, unknown> | null }) {
+  if (!value || Object.keys(value).length === 0) {
+    return <p className="text-sm text-muted-foreground">Vazio</p>
+  }
+
+  return (
+    <pre className="overflow-x-auto rounded-2xl border border-border/60 bg-background/70 p-4 text-xs leading-6 text-muted-foreground">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  )
+}
+
+function stringifyFilterValue(value: Record<string, unknown> | null) {
+  return value ? JSON.stringify(value).toLowerCase() : ""
+}
+
+export default function LogsPage() {
+  const { isAdmin } = useAuth()
+  const [userFilter, setUserFilter] = useState("")
+  const [leadFilter, setLeadFilter] = useState("")
+  const [actionFilter, setActionFilter] = useState("")
+
+  const deferredUserFilter = useDeferredValue(userFilter)
+  const deferredLeadFilter = useDeferredValue(leadFilter)
+
+  const logsQuery = useQuery({
+    queryKey: ["audit-logs"],
+    queryFn: () => fetchAuditLogs(150),
+    enabled: isAdmin,
+  })
+
+  const logs = useMemo(() => logsQuery.data ?? [], [logsQuery.data])
+  const availableActions = useMemo(
+    () => Array.from(new Set(logs.map((log) => log.action))).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [logs]
+  )
+
+  const filteredLogs = useMemo(() => {
+    const normalizedUserFilter = deferredUserFilter.trim().toLowerCase()
+    const normalizedLeadFilter = deferredLeadFilter.trim().toLowerCase()
+
+    return logs.filter((log) => {
+      const actorLabel = [log.actor_name_snapshot, log.actor_email_snapshot].filter(Boolean).join(" ").toLowerCase()
+      const leadPayload = [
+        log.entity_type === "lead" || log.entity_type === "lead_note" ? log.entity_id : null,
+        log.description,
+        stringifyFilterValue(log.before_data),
+        stringifyFilterValue(log.after_data),
+        stringifyFilterValue(log.metadata),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+
+      const matchesUser = !normalizedUserFilter || actorLabel.includes(normalizedUserFilter)
+      const matchesLead = !normalizedLeadFilter || leadPayload.includes(normalizedLeadFilter)
+      const matchesAction = !actionFilter || log.action === actionFilter
+
+      return matchesUser && matchesLead && matchesAction
+    })
+  }, [actionFilter, deferredLeadFilter, deferredUserFilter, logs])
+
+  const hasActiveFilters = Boolean(userFilter.trim() || leadFilter.trim() || actionFilter)
+
+  function clearFilters() {
+    setUserFilter("")
+    setLeadFilter("")
+    setActionFilter("")
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Logs</h1>
+        <p className="text-sm text-muted-foreground">Somente administradores podem acessar esta tela.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageIntro
+        badge="Auditoria"
+        badgeTone="amber"
+        title="Logs"
+        description="Registro administrativo das principais mudanças feitas no CRM."
+        aside={
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { label: "Eventos carregados", value: logs.length, icon: History },
+              { label: "Eventos visíveis", value: filteredLogs.length, icon: ShieldCheck },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <Card key={item.label} className="rounded-3xl border border-border/60 bg-background/70 shadow-none">
+                  <CardContent className="flex min-h-24 items-center gap-4 p-4">
+                    <div className="rounded-2xl border border-border/60 bg-card/90 p-3">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-semibold text-foreground">{item.value}</p>
+                      <p className="text-sm text-muted-foreground">{item.label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        }
+      />
+
+      {logsQuery.error ? (
+        <StatePanel tone="error" centered={false}>
+          {logsQuery.error instanceof Error ? logsQuery.error.message : "Não foi possível carregar os logs."}
+        </StatePanel>
+      ) : null}
+
+      {logsQuery.isLoading ? <StatePanel>Carregando trilha de auditoria...</StatePanel> : null}
+
+      {!logsQuery.isLoading && logs.length > 0 ? (
+        <Card className="rounded-3xl border border-border/60 bg-background/80 shadow-none">
+          <CardHeader className="gap-2">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Filter className="h-4 w-4 text-primary" />
+                  Filtros
+                </CardTitle>
+                <CardDescription>Refine a trilha por usuário, lead ou tipo de ação.</CardDescription>
+              </div>
+              {hasActiveFilters ? (
+                <Button type="button" variant="ghost" className="rounded-2xl" onClick={clearFilters}>
+                  <X className="h-4 w-4" />
+                  Limpar filtros
+                </Button>
+              ) : null}
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-3 lg:grid-cols-[1.1fr_1.1fr_0.8fr]">
+            <Input
+              value={userFilter}
+              onChange={(event) => setUserFilter(event.target.value)}
+              placeholder="Filtrar por usuário"
+              aria-label="Filtrar logs por usuário"
+              className="h-12 rounded-3xl border border-border bg-background px-4"
+            />
+            <Input
+              value={leadFilter}
+              onChange={(event) => setLeadFilter(event.target.value)}
+              placeholder="Filtrar por lead, ID ou dado relacionado"
+              aria-label="Filtrar logs por lead"
+              className="h-12 rounded-3xl border border-border bg-background px-4"
+            />
+            <Select
+              value={actionFilter}
+              onChange={(event) => setActionFilter(event.target.value)}
+              aria-label="Filtrar logs por ação"
+              className="h-12 rounded-3xl border border-border bg-background px-4"
+            >
+              <option value="">Todas as ações</option>
+              {availableActions.map((action) => (
+                <option key={action} value={action}>
+                  {formatSupabaseValue(action)}
+                </option>
+              ))}
+            </Select>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!logsQuery.isLoading && logs.length === 0 ? <StatePanel>Nenhum log registrado ainda.</StatePanel> : null}
+
+      {!logsQuery.isLoading && logs.length > 0 && filteredLogs.length === 0 ? (
+        <StatePanel centered={false}>Nenhum log encontrado com os filtros atuais.</StatePanel>
+      ) : null}
+
+      {!logsQuery.isLoading && filteredLogs.length > 0 ? (
+        <div className="space-y-4">
+          {filteredLogs.map((log) => (
+            <Card key={log.id} className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
+              <CardHeader className="gap-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CardTitle className="text-lg">{log.description}</CardTitle>
+                      <Badge className="min-h-7 rounded-full px-3 text-sm">{formatSupabaseValue(log.action)}</Badge>
+                      <Badge variant="outline" className="min-h-7 rounded-full px-3 text-sm">
+                        {formatSupabaseValue(log.entity_type)}
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      {formatDateTime(log.created_at)} · {formatSupabaseValue(log.entity_id)}
+                    </CardDescription>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm">
+                    <div className="flex items-center gap-2 text-foreground">
+                      <UserRound className="h-4 w-4 text-primary" />
+                      <span>{formatSupabaseValue(log.actor_name_snapshot || log.actor_email_snapshot)}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="grid gap-4 xl:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Antes</p>
+                  <JsonBlock value={log.before_data} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Depois</p>
+                  <JsonBlock value={log.after_data} />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}

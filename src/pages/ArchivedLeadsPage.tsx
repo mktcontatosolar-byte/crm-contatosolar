@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/useAuth"
+import { logAuditEvent } from "@/lib/auditLogs"
 import { fetchArchivedLeads as fetchArchivedCrmLeads, updateLeadState } from "@/lib/crmLeads"
 import { logLeadActivity } from "@/lib/leadActivity"
+import { formatSupabaseValue } from "@/lib/utils"
 import type { Lead } from "@/types"
 
 type ArchivedLead = Pick<
@@ -41,7 +43,7 @@ function leadDisplayName(lead: ArchivedLead) {
 
 function formatDate(dateString: string | null) {
   if (!dateString) {
-    return "Sem registro disponível"
+    return "Vazio"
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -103,6 +105,27 @@ export default function ArchivedLeadsPage() {
         tipo: "desarquivamento",
         descricao: "Lead desarquivado e devolvido ao pool",
       })
+
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead",
+          entityId: lead.id,
+          action: "desarquivamento",
+          description: "Lead desarquivado e devolvido ao pool",
+          beforeData: {
+            arquivado: true,
+          },
+          afterData: {
+            arquivado: false,
+            corretor_id: null,
+            stage_id: null,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
 
       return lead
     },
@@ -207,7 +230,7 @@ export default function ArchivedLeadsPage() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
                     <CardTitle className="text-lg">{leadDisplayName(lead)}</CardTitle>
-                    <CardDescription>{lead.email || lead.telefone_contato || "Sem contato principal"}</CardDescription>
+                    <CardDescription>{formatSupabaseValue(lead.email || lead.telefone_contato)}</CardDescription>
                   </div>
                   <Badge className="min-h-7 w-fit rounded-full px-3 text-sm">Arquivado</Badge>
                 </div>
@@ -236,7 +259,7 @@ export default function ArchivedLeadsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Status da conversa</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{lead.status_conversa || "Sem status"}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{formatSupabaseValue(lead.status_conversa)}</p>
                       </div>
                     </div>
                   </div>

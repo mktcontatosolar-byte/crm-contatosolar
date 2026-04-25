@@ -7,6 +7,7 @@ import Login from "@/pages/Login"
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"))
 const ArchivedLeadsPage = lazy(() => import("@/pages/ArchivedLeadsPage"))
 const LeadDetailPage = lazy(() => import("@/pages/LeadDetailPage"))
+const LogsPage = lazy(() => import("@/pages/LogsPage"))
 const MetricsPage = lazy(() => import("@/pages/MetricsPage"))
 const PoolLeadsPage = lazy(() => import("@/pages/PoolLeadsPage"))
 const TeamPage = lazy(() => import("@/pages/TeamPage"))
@@ -109,6 +110,17 @@ export default function App() {
           <PrivateRoute>
             <Suspense fallback={<RouteFallback />}>
               <MetricsPage />
+            </Suspense>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/logs"
+        element={
+          <PrivateRoute>
+            <Suspense fallback={<RouteFallback />}>
+              {profile?.role === "admin" ? <LogsPage /> : <Navigate to="/kanban" replace />}
             </Suspense>
           </PrivateRoute>
         }

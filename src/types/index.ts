@@ -28,6 +28,12 @@ export type Lead = {
   remotejid: string
   numero: string | null
   nome_completo: string | null
+  tipoimovel?: string | null
+  valorcontaenergia?: string | null
+  conta?: boolean | null
+  urgencia?: string | null
+  telefone_confirmado?: string | null
+  cidade?: string | null
   email: string | null
   telefone_contato: string | null
   horario_preferido: string | null

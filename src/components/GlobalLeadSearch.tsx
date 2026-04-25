@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/command"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchLeadBrokerMap, searchCrmLeads } from "@/lib/crmLeads"
-import { cn } from "@/lib/utils"
+import { cn, formatSupabaseValue } from "@/lib/utils"
 import type { Lead } from "@/types"
 
 type SearchLead = Pick<
@@ -249,13 +249,13 @@ export default function GlobalLeadSearch({
                               getStatusBadge(lead.status_conversa)
                             )}
                           >
-                            {lead.status_conversa || "Sem status"}
+                            {formatSupabaseValue(lead.status_conversa)}
                           </Badge>
                         </div>
 
                         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                          <span className="truncate">{lead.email || lead.telefone_contato || "Sem contato principal"}</span>
-                          <span>{lead.brokerName || "Sem vendedor"}</span>
+                          <span className="truncate">{formatSupabaseValue(lead.email || lead.telefone_contato)}</span>
+                          <span>{formatSupabaseValue(lead.brokerName)}</span>
                         </div>
                       </div>
                     </CommandItem>

@@ -4,11 +4,14 @@ import { ptBR } from "date-fns/locale"
 import { useNavigate } from "react-router-dom"
 import {
   BadgeCheck,
+  Building2,
   CalendarClock,
   ChevronRight,
-  Clock3,
-  Mail,
+  CircleAlert,
+  FileText,
+  MapPin,
   Phone,
+  ShieldCheck,
   UserRoundSearch,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -40,25 +43,27 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts/useAuth"
 import { fetchPoolLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
+import { logAuditEvent } from "@/lib/auditLogs"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
-import { cn } from "@/lib/utils"
+import { cn, formatSupabaseBoolean, formatSupabaseValue } from "@/lib/utils"
 import type { Lead, Profile } from "@/types"
 
 type PoolLead = Pick<
   Lead,
   | "id"
   | "nome_completo"
-  | "email"
-  | "telefone_contato"
-  | "horario_preferido"
-  | "status_conversa"
+  | "numero"
+  | "tipoimovel"
+  | "valorcontaenergia"
+  | "outra_info"
+  | "conta"
+  | "urgencia"
+  | "telefone_confirmado"
+  | "cidade"
   | "corretor_id"
   | "created_at"
   | "assumed_at"
-  | "outra_info"
-  | "origem"
-  | "campanha"
   | "arquivado"
 >
 
@@ -77,7 +82,7 @@ function formatRelativeTime(dateString: string) {
 }
 
 function leadDisplayName(lead: PoolLead) {
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
+  return lead.nome_completo || lead.numero || "Lead sem identificação"
 }
 
 function getInitials(value: string) {
@@ -228,6 +233,23 @@ export default function PoolLeadsPage() {
         },
       })
 
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead",
+          entityId: leadId,
+          action: "lead_assigned",
+          description: `Lead atribuído para ${selectedBroker?.nome || selectedBroker?.email || "vendedor"}`,
+          afterData: {
+            corretor_id: corretorId,
+            assumed_at: "set_now",
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
+
       setLeads((currentLeads) => currentLeads.filter((lead) => lead.id !== leadId))
       setSelectedLeadId((current) => {
         if (current !== leadId) {
@@ -362,6 +384,9 @@ export default function PoolLeadsPage() {
             <CardDescription className="text-sm text-muted-foreground">
               Recebido {formatRelativeTime(selectedLead.created_at)}
             </CardDescription>
+            <CardDescription className="text-sm text-muted-foreground">
+              {formatSupabaseValue(selectedLead.cidade)}
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -370,19 +395,44 @@ export default function PoolLeadsPage() {
         <div className="grid gap-3">
           {[
             {
-              icon: Mail,
-              label: "Email",
-              value: selectedLead.email || "Não informado",
+              icon: Phone,
+              label: "Número",
+              value: formatSupabaseValue(selectedLead.numero),
+            },
+            {
+              icon: Building2,
+              label: "Tipo de imóvel",
+              value: formatSupabaseValue(selectedLead.tipoimovel),
+            },
+            {
+              icon: FileText,
+              label: "Valor da conta de energia",
+              value: formatSupabaseValue(selectedLead.valorcontaenergia),
+            },
+            {
+              icon: FileText,
+              label: "Outra info",
+              value: formatSupabaseValue(selectedLead.outra_info),
+            },
+            {
+              icon: ShieldCheck,
+              label: "Conta enviada",
+              value: formatSupabaseBoolean(selectedLead.conta),
+            },
+            {
+              icon: CircleAlert,
+              label: "Urgência",
+              value: formatSupabaseValue(selectedLead.urgencia),
             },
             {
               icon: Phone,
-              label: "Telefone",
-              value: selectedLead.telefone_contato || "Não informado",
+              label: "Telefone confirmado",
+              value: formatSupabaseValue(selectedLead.telefone_confirmado),
             },
             {
-              icon: Clock3,
-              label: "Horario preferido",
-              value: selectedLead.horario_preferido || "Não informado",
+              icon: MapPin,
+              label: "Cidade",
+              value: formatSupabaseValue(selectedLead.cidade),
             },
           ].map((item) => {
             const Icon = item.icon
@@ -434,9 +484,9 @@ export default function PoolLeadsPage() {
                     </Avatar>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {corretor.nome || "Vendedor sem nome"}
+                        {corretor.nome || corretor.email || "Vazio"}
                       </p>
-                      <p className="truncate text-sm text-muted-foreground">{corretor.email || "Sem e-mail"}</p>
+                      <p className="truncate text-sm text-muted-foreground">{formatSupabaseValue(corretor.email)}</p>
                     </div>
                   </div>
                 </SelectItem>
@@ -501,7 +551,7 @@ export default function PoolLeadsPage() {
         badge="Distribuição inicial"
         badgeTone="amber"
         title="Pool de Leads"
-        description="Leads qualificados ainda não atribuídos para um vendedor."
+        description="Todos os leads que chegam na base e ainda não foram atribuídos para um vendedor."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {[
@@ -542,7 +592,7 @@ export default function PoolLeadsPage() {
 
       {!loading && leads.length === 0 ? (
         <StatePanel>
-          Nenhum lead qualificado no pool neste momento. Novos leads voltam a aparecer aqui assim que ficarem sem vendedor.
+          Nenhum lead novo no pool neste momento. Novos leads aparecem aqui assim que entrarem na base sem vendedor atribuído.
         </StatePanel>
       ) : null}
 
@@ -594,9 +644,13 @@ export default function PoolLeadsPage() {
 
                         <div className="flex items-center justify-between gap-3">
                           <p className="truncate text-sm text-muted-foreground">
-                            {lead.email || lead.telefone_contato || "Sem contato principal"}
+                            {formatSupabaseValue(lead.numero)}
                           </p>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span>{formatSupabaseValue(lead.tipoimovel)}</span>
+                          <span>{formatSupabaseValue(lead.cidade)}</span>
                         </div>
                         <div className="xl:hidden">
                           <Button

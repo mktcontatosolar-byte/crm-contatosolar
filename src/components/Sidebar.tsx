@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/useAuth"
 import {
   Archive,
   ChevronRight,
+  History,
   Kanban,
   LayoutDashboard,
   LogOut,
@@ -147,6 +148,11 @@ export default function Sidebar() {
             label: "Métricas",
             icon: LayoutDashboard,
             path: "/metricas",
+          },
+          {
+            label: "Logs",
+            icon: History,
+            path: "/logs",
           },
         ]
       : []),

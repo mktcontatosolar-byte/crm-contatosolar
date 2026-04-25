@@ -56,8 +56,10 @@ import {
   LEAD_TAGS_TABLE,
   updateLeadState,
 } from "@/lib/crmLeads"
+import { logAuditEvent } from "@/lib/auditLogs"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
+import { formatSupabaseValue } from "@/lib/utils"
 import type { KanbanStage, Lead, LeadTag, Profile, Tag } from "@/types"
 
 type KanbanLead = Pick<
@@ -159,7 +161,7 @@ function LeadCardBody({
             <CardTitle className="truncate text-[15px] font-semibold text-foreground">
               {leadDisplayName(lead)}
             </CardTitle>
-            <p className="text-xs text-muted-foreground">{lead.telefone_contato || "Telefone não informado"}</p>
+            <p className="text-xs text-muted-foreground">{formatSupabaseValue(lead.telefone_contato)}</p>
             <Badge variant="outline" className={`h-6 rounded-full px-2.5 text-[11px] font-medium ${originBadgeClasses(lead.origem)}`}>
               {originBadgeLabel(lead.origem)}
             </Badge>
@@ -503,6 +505,27 @@ export default function KanbanPage() {
         descricao: "Lead devolvido ao pool",
       })
 
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead",
+          entityId: lead.id,
+          action: "pool",
+          description: "Lead devolvido ao pool",
+          beforeData: {
+            corretor_id: lead.corretor_id,
+            stage_id: lead.stage_id,
+          },
+          afterData: {
+            corretor_id: null,
+            stage_id: null,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
+
       return lead
     },
     onSuccess: async (lead) => {
@@ -542,6 +565,25 @@ export default function KanbanPage() {
           stage_name: stage.nome,
         },
       })
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead",
+          entityId: lead.id,
+          action: "stage_changed",
+          description: `Etapa alterada para ${stage.nome}`,
+          beforeData: {
+            stage_id: lead.stage_id ?? null,
+          },
+          afterData: {
+            stage_id: stage.id,
+            stage_name: stage.nome,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       return { lead, stage }
     },
     onMutate: async ({ lead, stageId }) => {

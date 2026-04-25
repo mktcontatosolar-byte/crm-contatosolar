@@ -56,9 +56,10 @@ import {
   LEAD_STATE_TABLE,
   updateLeadState,
 } from "@/lib/crmLeads"
+import { logAuditEvent } from "@/lib/auditLogs"
 import { fetchLeadActivities, logLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
-import { cn } from "@/lib/utils"
+import { cn, formatSupabaseValue } from "@/lib/utils"
 import type { ChatMessage, LeadActivity, LeadDetail, LeadNote, Profile } from "@/types"
 
 type LeadAction = "toggle-ia" | "return-pool" | "archive"
@@ -66,7 +67,7 @@ type LeadNoteWithAuthor = LeadNote & { authorProfile: Profile | null }
 
 function formatDateTime(dateString: string | null | undefined) {
   if (!dateString) {
-    return "Não disponível"
+    return "Vazio"
   }
 
   return format(new Date(dateString), "dd/MM/yyyy 'as' HH:mm", {
@@ -76,7 +77,7 @@ function formatDateTime(dateString: string | null | undefined) {
 
 function formatRelativeTime(dateString: string | null | undefined) {
   if (!dateString) {
-    return "Sem registro recente"
+    return "Vazio"
   }
 
   return formatDistanceToNow(new Date(dateString), {
@@ -110,6 +111,19 @@ function leadDisplayName(lead: LeadDetail | null) {
   }
 
   return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
+}
+
+function getWhatsAppUrl(phone: string | null | undefined) {
+  if (!phone) {
+    return null
+  }
+
+  const digits = phone.replace(/\D/g, "")
+  if (digits.length === 0) {
+    return null
+  }
+
+  return `https://wa.me/${digits}`
 }
 
 function getInitials(value: string) {
@@ -302,6 +316,7 @@ export default function LeadDetailPage() {
   const leadSessionId = leadDetail?.remotejid ?? null
 
   const homePath = isAdmin ? "/" : "/kanban"
+  const whatsappUrl = getWhatsAppUrl(leadDetail?.telefone_contato)
   const activityQuery = useQuery({
     queryKey: ["lead-activity", id],
     queryFn: () => fetchLeadActivities(id!),
@@ -468,6 +483,43 @@ export default function LeadDetailPage() {
           tipo: nextActivity.tipo,
           descricao: nextActivity.descricao,
         })
+
+        try {
+          await logAuditEvent({
+            actorUserId: user?.id ?? null,
+            actorEmail: user?.email ?? null,
+            entityType: "lead",
+            entityId: id,
+            action: nextActivity.tipo,
+            description: nextActivity.descricao,
+            beforeData: {
+              corretor_id: leadDetail?.corretor_id ?? null,
+              stage_id: leadDetail?.stage_id ?? null,
+              arquivado: leadDetail?.arquivado ?? false,
+              ia_paused: leadDetail?.ia_paused ?? false,
+            },
+            afterData: {
+              corretor_id:
+                Object.prototype.hasOwnProperty.call(values, "corretor_id")
+                  ? (values.corretor_id ?? null)
+                  : (leadDetail?.corretor_id ?? null),
+              stage_id:
+                Object.prototype.hasOwnProperty.call(values, "stage_id")
+                  ? (values.stage_id ?? null)
+                  : (leadDetail?.stage_id ?? null),
+              arquivado:
+                Object.prototype.hasOwnProperty.call(values, "arquivado")
+                  ? (values.arquivado ?? false)
+                  : (leadDetail?.arquivado ?? false),
+              ia_paused:
+                Object.prototype.hasOwnProperty.call(values, "ia_paused")
+                  ? (values.ia_paused ?? false)
+                  : (leadDetail?.ia_paused ?? false),
+            },
+          })
+        } catch (auditError) {
+          console.error("Erro ao registrar log de auditoria:", auditError)
+        }
       }
 
       await Promise.all([
@@ -527,6 +579,21 @@ export default function LeadDetailPage() {
       setNewNote("")
       await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
       setError("")
+      try {
+        await logAuditEvent({
+          actorUserId: user.id,
+          actorEmail: user.email ?? null,
+          entityType: "lead_note",
+          entityId: id,
+          action: "note_created",
+          description: "Nota interna criada",
+          afterData: {
+            content,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       toast.success("Nota interna salva com sucesso.")
     } catch (saveError) {
       console.error("Erro ao salvar nota interna:", saveError)
@@ -556,6 +623,21 @@ export default function LeadDetailPage() {
       }
     },
     onSuccess: async () => {
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead_note",
+          entityId: editingNoteId ?? id ?? null,
+          action: "note_updated",
+          description: "Nota interna atualizada",
+          afterData: {
+            content: editingNoteContent.trim(),
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       setEditingNoteId(null)
       setEditingNoteContent("")
       await queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
@@ -577,6 +659,24 @@ export default function LeadDetailPage() {
       }
     },
     onSuccess: async () => {
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead_note",
+          entityId: pendingDeleteNote?.id ?? null,
+          action: "note_deleted",
+          description: "Nota interna excluída",
+          beforeData: pendingDeleteNote
+            ? {
+                content: pendingDeleteNote.content,
+                lead_id: pendingDeleteNote.lead_id,
+              }
+            : null,
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       setPendingDeleteNote(null)
       setEditingNoteId(null)
       setEditingNoteContent("")
@@ -669,7 +769,7 @@ export default function LeadDetailPage() {
 
     return [
       {
-        label: leadDetail.status_conversa || "Sem status",
+        label: formatSupabaseValue(leadDetail.status_conversa),
         className: "border-primary/20 bg-primary/10 text-primary",
       },
       {
@@ -820,21 +920,38 @@ export default function LeadDetailPage() {
                 <CardDescription>Contato, origem e contexto operacional deste lead.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-full"
+                    disabled={!whatsappUrl}
+                    onClick={() => {
+                      if (whatsappUrl) {
+                        window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+                      }
+                    }}
+                  >
+                    <Phone className="mr-2 h-4 w-4" />
+                    Ir para WhatsApp
+                  </Button>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
-                  <DetailField icon={UserRound} label="Nome" value={leadDetail.nome_completo || "Não informado"} />
-                  <DetailField icon={Mail} label="E-mail" value={leadDetail.email || "Não informado"} />
-                  <DetailField icon={Phone} label="Telefone" value={leadDetail.telefone_contato || "Não informado"} />
+                  <DetailField icon={UserRound} label="Nome" value={formatSupabaseValue(leadDetail.nome_completo)} />
+                  <DetailField icon={Mail} label="E-mail" value={formatSupabaseValue(leadDetail.email)} />
+                  <DetailField icon={Phone} label="Telefone" value={formatSupabaseValue(leadDetail.telefone_contato)} />
                   <DetailField
                     icon={Clock3}
                     label="Horario preferido"
-                    value={leadDetail.horario_preferido || "Não informado"}
+                    value={formatSupabaseValue(leadDetail.horario_preferido)}
                   />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <DetailField icon={MessageSquareText} label="Origem" value={leadDetail.origem || "Não informada"} />
-                  <DetailField icon={MessageSquareText} label="Campanha" value={leadDetail.campanha || "Não informada"} />
-                  <DetailField icon={MessageSquareText} label="Outra info" value={leadDetail.outra_info || "Não informada"} />
+                  <DetailField icon={MessageSquareText} label="Origem" value={formatSupabaseValue(leadDetail.origem)} />
+                  <DetailField icon={MessageSquareText} label="Campanha" value={formatSupabaseValue(leadDetail.campanha)} />
+                  <DetailField icon={MessageSquareText} label="Outra info" value={formatSupabaseValue(leadDetail.outra_info)} />
                   <DetailField
                     icon={CalendarClock}
                     label="Data de criação"
@@ -849,7 +966,7 @@ export default function LeadDetailPage() {
                     <p className="text-sm font-medium text-foreground">Vendedor atribuído</p>
                     <div className="mt-3">
                       <Badge className="min-h-7 rounded-full px-3 text-sm">
-                        {assignedBroker?.nome || assignedBroker?.email || "Sem vendedor"}
+                        {assignedBroker?.nome || assignedBroker?.email || "Vazio"}
                       </Badge>
                     </div>
                   </div>

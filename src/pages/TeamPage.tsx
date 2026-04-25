@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { useAuth } from "@/contexts/useAuth"
 import { fetchAssignedLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
+import { logAuditEvent } from "@/lib/auditLogs"
 import { logLeadActivity } from "@/lib/leadActivity"
 import { ManageUserRequestError, manageUser } from "@/lib/manageUser"
 import { supabase } from "@/lib/supabase"
@@ -161,6 +162,24 @@ export default function TeamPage() {
         ativo: values.ativo === "true",
       }),
     onSuccess: async (_, variables) => {
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "team_member",
+          entityId: variables.email.trim().toLowerCase(),
+          action: "user_created",
+          description: `Usuário ${variables.nome.trim()} criado`,
+          afterData: {
+            nome: variables.nome.trim(),
+            email: variables.email.trim().toLowerCase(),
+            role: variables.role,
+            ativo: variables.ativo === "true",
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       form.reset(initialFormValues)
       toast.success(`${variables.role === "admin" ? "Admin" : "Vendedor"} criado com sucesso.`)
       await invalidateOperationalQueries()
@@ -186,6 +205,24 @@ export default function TeamPage() {
       return member
     },
     onSuccess: async (member) => {
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "team_member",
+          entityId: member.id,
+          action: "user_status_changed",
+          description: `Status de ${displayName(member)} alterado`,
+          beforeData: {
+            ativo: member.ativo,
+          },
+          afterData: {
+            ativo: !member.ativo,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       toast.success(
         member.ativo
           ? `${member.role === "admin" ? "Admin" : "Vendedor"} inativado com sucesso. O acesso foi removido e os dados foram preservados.`
@@ -206,6 +243,28 @@ export default function TeamPage() {
         userId: member.id,
       }),
     onSuccess: async () => {
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "team_member",
+          entityId: pendingDeletion?.member.id ?? null,
+          action: "user_deleted",
+          description: pendingDeletion
+            ? `Usuário ${displayName(pendingDeletion.member)} excluído`
+            : "Usuário excluído",
+          beforeData: pendingDeletion
+            ? {
+                nome: pendingDeletion.member.nome,
+                email: pendingDeletion.member.email,
+                role: pendingDeletion.member.role,
+                ativo: pendingDeletion.member.ativo,
+              }
+            : null,
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
       toast.success("Usuário excluído com sucesso.")
       setPendingDeletion(null)
       await invalidateOperationalQueries()
@@ -239,6 +298,26 @@ export default function TeamPage() {
         tipo: "pool",
         descricao: "Lead devolvido ao pool",
       })
+
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "lead",
+          entityId: lead.id,
+          action: "lead_redistributed",
+          description: "Lead devolvido ao pool pela equipe",
+          beforeData: {
+            corretor_id: lead.corretor_id,
+          },
+          afterData: {
+            corretor_id: null,
+            stage_id: null,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
 
       return lead
     },
@@ -279,6 +358,23 @@ export default function TeamPage() {
           })
         )
       )
+
+      try {
+        await logAuditEvent({
+          actorUserId: user?.id ?? null,
+          actorEmail: user?.email ?? null,
+          entityType: "team_member",
+          entityId: broker.id,
+          action: "leads_redistributed_bulk",
+          description: `${leads.length} lead(s) devolvidos ao pool`,
+          metadata: {
+            total: leads.length,
+            lead_ids: leads.map((lead) => lead.id),
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
 
       return { broker, total: leads.length }
     },

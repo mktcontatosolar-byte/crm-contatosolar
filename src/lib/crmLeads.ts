@@ -6,13 +6,21 @@ type LeadSourceRow = {
   data: string | null
   nome: string | null
   numero: string | null
-  remotejid: string | null
+  tipoimovel: string | null
+  valorcontaenergia: string | null
   outra_info: string | null
+  conta: boolean | null
+  urgencia: string | null
+  telefone_confirmado: string | null
+  cidade: string | null
+  remotejid: string | null
   created_at: string | null
   followup_count: number | null
   status_conversa: string | null
   last_interaction_at: string | null
   origem: string | null
+  email: string | null
+  campanha: string | null
 }
 
 type LeadStateRow = {
@@ -42,7 +50,7 @@ const LEAD_TAGS_TABLE = "crm_lead_tags"
 const LEAD_MESSAGES_TABLE = "n8n_chat_histories_nova"
 
 const leadSourceSelect =
-  "id,data,nome,numero,remotejid,outra_info,created_at,followup_count,status_conversa,last_interaction_at,origem"
+  "id,data,nome,numero,tipoimovel,valorcontaenergia,outra_info,conta,urgencia,telefone_confirmado,cidade,remotejid,created_at,followup_count,status_conversa,last_interaction_at,origem,email,campanha"
 
 const leadStateSelect =
   "lead_id,corretor_id,assumed_at,stage_id,arquivado,ia_paused,first_response_at,created_at,updated_at"
@@ -59,23 +67,68 @@ function ensureDate(value: string | null | undefined, fallback?: string | null) 
   return value ?? fallback ?? new Date().toISOString()
 }
 
+function extractPhoneFromRemoteJid(remoteJid: string | null | undefined) {
+  if (!remoteJid) {
+    return null
+  }
+
+  const [rawValue] = remoteJid.split("@")
+  const digits = rawValue.replace(/\D/g, "")
+
+  return digits.length > 0 ? digits : null
+}
+
+function formatBrazilPhone(rawPhone: string | null | undefined) {
+  if (!rawPhone) {
+    return null
+  }
+
+  const digits = rawPhone.replace(/\D/g, "")
+
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`
+  }
+
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`
+  }
+
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+  }
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  }
+
+  return digits
+}
+
 function mapLead(base: LeadSourceRow, state?: LeadStateRow | null): Lead {
   const createdAt = ensureDate(base.created_at, base.data)
+  const phoneDigits = base.numero?.trim() || extractPhoneFromRemoteJid(base.remotejid)
+  const formattedPhone = formatBrazilPhone(phoneDigits)
 
   return {
     id: base.id,
     remotejid: base.remotejid ?? "",
-    numero: base.numero,
+    numero: formattedPhone,
     nome_completo: base.nome,
-    email: null,
-    telefone_contato: base.numero,
+    tipoimovel: base.tipoimovel,
+    valorcontaenergia: base.valorcontaenergia,
+    conta: base.conta,
+    urgencia: base.urgencia,
+    telefone_confirmado: base.telefone_confirmado,
+    cidade: base.cidade,
+    email: base.email,
+    telefone_contato: formattedPhone,
     horario_preferido: null,
     tem_nome: Boolean(base.nome),
-    tem_email: false,
-    tem_telefone: Boolean(base.numero),
+    tem_email: Boolean(base.email),
+    tem_telefone: Boolean(phoneDigits),
     tem_horario: false,
     status_conversa: base.status_conversa ?? "novo",
-    campanha: null,
+    campanha: base.campanha,
     origem: base.origem,
     outra_info: base.outra_info,
     corretor_id: state?.corretor_id ?? null,
@@ -84,7 +137,7 @@ function mapLead(base: LeadSourceRow, state?: LeadStateRow | null): Lead {
     arquivado: state?.arquivado ?? false,
     ia_paused: state?.ia_paused ?? false,
     followup_count: base.followup_count ?? 0,
-    first_response_at: ensureDate(state?.first_response_at, null),
+    first_response_at: state?.first_response_at ?? null,
     last_interaction_at: ensureDate(base.last_interaction_at, createdAt),
     created_at: createdAt,
   }
@@ -159,7 +212,6 @@ export async function fetchPoolLeads() {
   const { data: baseData, error: baseError } = await supabase
     .from(LEAD_SOURCE_TABLE)
     .select(leadSourceSelect)
-    .eq("status_conversa", "qualificado")
     .order("created_at", { ascending: false })
 
   if (baseError) {
@@ -314,7 +366,7 @@ export async function searchCrmLeads(query: string) {
   const { data: baseData, error: baseError } = await supabase
     .from(LEAD_SOURCE_TABLE)
     .select(leadSourceSelect)
-    .or(`nome.ilike.%${normalized}%,numero.ilike.%${normalized}%`)
+    .or(`nome.ilike.%${normalized}%,numero.ilike.%${normalized}%,email.ilike.%${normalized}%`)
     .limit(20)
 
   if (baseError) {
