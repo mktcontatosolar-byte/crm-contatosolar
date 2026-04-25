@@ -120,7 +120,7 @@ export default function MetricsPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar métricas:", loadError)
-      setError("N?f?o foi poss?f?vel carregar as métricas do CRM.")
+      setError("Não foi possível carregar as métricas do CRM.")
     } finally {
       setLoading(false)
     }
@@ -315,7 +315,7 @@ export default function MetricsPage() {
               accentClassName="text-sky-600 dark:text-sky-300"
             />
             <StatCard
-              label="Leads sem responsÃ¡vel"
+              label="Leads sem responsável"
               value={metrics.totals.pool}
               icon={Users}
               accentClassName="text-amber-600 dark:text-amber-300"
@@ -343,7 +343,7 @@ export default function MetricsPage() {
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <ChartPanel
               title="Leads por etapa do Kanban"
-              description="DistribuiÃ§Ã£o atual do funil com barras proporcionais para leitura rÃ¡pida."
+              description="Distribuição atual do funil com barras proporcionais para leitura rápida."
             >
               <div className="space-y-4">
                 {metrics.leadsByStage.length === 0 ? (
@@ -448,7 +448,7 @@ export default function MetricsPage() {
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Fila sem vendedor</p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{metrics.totals.pool}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Leads aguardando distribuiÃ§Ã£o imediata na fila.
+                    Leads aguardando distribuição imediata na fila.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-background/70 p-4">

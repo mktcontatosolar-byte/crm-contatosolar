@@ -99,7 +99,7 @@ function getSupabaseErrorMessage(error: unknown, fallback: string) {
   }
 
   if (candidate.code === "42501") {
-    return "Sem permissÃ£o para salvar a observaÃ§Ã£o. Verifique a policy de INSERT da tabela lead_notes."
+    return "Sem permissão para salvar a observação. Verifique a policy de INSERT da tabela lead_notes."
   }
 
   return candidate.details || candidate.hint || candidate.message || fallback
@@ -107,10 +107,10 @@ function getSupabaseErrorMessage(error: unknown, fallback: string) {
 
 function leadDisplayName(lead: LeadDetail | null) {
   if (!lead) {
-    return "Lead sem identificaÃ§Ã£o"
+    return "Lead sem identificação"
   }
 
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificaÃ§Ã£o"
+  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
 function getWhatsAppUrl(phone: string | null | undefined) {
@@ -422,7 +422,7 @@ export default function LeadDetailPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar detalhe do lead:", loadError)
-      setError("NÃ£o conseguimos abrir esse lead agora.")
+      setError("Não conseguimos abrir esse lead agora.")
     } finally {
       setLoading(false)
     }
@@ -542,8 +542,8 @@ export default function LeadDetailPage() {
       await loadDetails({ silent: true })
     } catch (updateError) {
       console.error("Erro ao atualizar lead:", updateError)
-      setError("NÃ£o foi possÃ­vel atualizar esse lead agora.")
-      toast.error("NÃ£o foi possÃ­vel atualizar esse lead agora.")
+      setError("Não foi possível atualizar esse lead agora.")
+      toast.error("Não foi possível atualizar esse lead agora.")
     } finally {
       setUpdating(false)
       setPendingAction(null)
@@ -552,7 +552,7 @@ export default function LeadDetailPage() {
 
   async function saveNote() {
     if (!id || !user || !canAddNote) {
-      setError("VocÃª nÃ£o pode adicionar observaÃ§Ãµes neste lead.")
+      setError("Você não pode adicionar observações neste lead.")
       return
     }
 
@@ -597,13 +597,13 @@ export default function LeadDetailPage() {
       console.error("Erro ao salvar nota interna:", saveError)
       const message = getSupabaseErrorMessage(
         saveError,
-        "NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o."
+        "Não foi possível salvar a observação."
       )
       setError(message)
       toast.error(message)
       return
-      setError("NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o.")
-      toast.error("NÃ£o foi possÃ­vel salvar a observaÃ§Ã£o.")
+      setError("Não foi possível salvar a observação.")
+      toast.error("Não foi possível salvar a observação.")
     } finally {
       setSavingNote(false)
     }
@@ -642,7 +642,7 @@ export default function LeadDetailPage() {
       toast.success("Nota atualizada com sucesso.")
     },
     onError: (updateError) => {
-      const message = getSupabaseErrorMessage(updateError, "NÃ£o foi possÃ­vel atualizar a observaÃ§Ã£o.")
+      const message = getSupabaseErrorMessage(updateError, "Não foi possível atualizar a observação.")
       setError(message)
       toast.error(message)
     },
@@ -682,7 +682,7 @@ export default function LeadDetailPage() {
       toast.success("Nota excluída com sucesso.")
     },
     onError: (deleteError) => {
-      const message = getSupabaseErrorMessage(deleteError, "NÃ£o foi possÃ­vel excluir a observaÃ§Ã£o.")
+      const message = getSupabaseErrorMessage(deleteError, "Não foi possível excluir a observação.")
       setError(message)
       toast.error(message)
     },
@@ -785,13 +785,13 @@ export default function LeadDetailPage() {
       title: leadDetail?.ia_paused ? "Reativar IA" : "Pausar IA",
       description: leadDetail?.ia_paused
         ? "A IA voltara a atuar neste atendimento."
-        : "A IA ser?f?'?,? pausada neste lead, mantendo todo o histórico.",
+        : "A IA será pausada neste lead, mantendo todo o histórico.",
       confirmLabel: leadDetail?.ia_paused ? "Reativar" : "Pausar",
       run: () => updateLead({ ia_paused: !leadDetail?.ia_paused }, "refresh"),
     },
     "return-pool": {
       title: "Voltar para a fila",
-      description: "Esse lead vai sair da carteira atual e ficar disponÃ­vel para nova distribuiÃ§Ã£o.",
+      description: "Esse lead vai sair da carteira atual e ficar disponível para nova distribuição.",
       confirmLabel: "Devolver",
       run: () =>
         updateLead(
@@ -898,7 +898,7 @@ export default function LeadDetailPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="no-scrollbar">
           <TabsTrigger value="dados">Dados</TabsTrigger>
-          <TabsTrigger value="acoes">AÃ§Ãµes</TabsTrigger>
+          <TabsTrigger value="acoes">Ações</TabsTrigger>
           <TabsTrigger value="notas">Notas</TabsTrigger>
           <TabsTrigger value="historico">Conversa</TabsTrigger>
         </TabsList>
@@ -910,7 +910,7 @@ export default function LeadDetailPage() {
             <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Dados principais</CardTitle>
-                <CardDescription>Contato, origem e informaÃ§Ãµes principais deste lead.</CardDescription>
+                <CardDescription>Contato, origem e informações principais deste lead.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex justify-end">
@@ -947,16 +947,16 @@ export default function LeadDetailPage() {
                   <DetailField icon={MessageSquareText} label="Outra info" value={formatSupabaseValue(leadDetail.outra_info)} />
                   <DetailField
                     icon={CalendarClock}
-                    label="Data de criaÃ§Ã£o"
+                    label="Data de criação"
                     value={formatDateTime(leadDetail.created_at)}
                   />
                   <DetailField
                     icon={CalendarClock}
-                    label="Ãšltima interaÃ§Ã£o"
+                    label="Última interação"
                     value={formatDateTime(leadDetail.last_interaction_at)}
                   />
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-foreground">ResponsÃ¡vel pelo lead</p>
+                    <p className="text-sm font-medium text-foreground">Responsável pelo lead</p>
                     <div className="mt-3">
                       <Badge className="min-h-7 rounded-full px-3 text-sm">
                         {assignedBroker?.nome || assignedBroker?.email || "Vazio"}
@@ -977,15 +977,15 @@ export default function LeadDetailPage() {
               {[
                 {
                   key: "toggle-ia" as const,
-                  title: "Atendimento automÃ¡tico",
-                  description: "Pause ou reative a automaÃ§Ã£o deste atendimento sem perder o histÃ³rico.",
+                  title: "Atendimento automático",
+                  description: "Pause ou reative a automação deste atendimento sem perder o histórico.",
                   icon: Bot,
                   buttonLabel: leadDetail.ia_paused ? "Reativar IA" : "Pausar IA",
                 },
                 {
                   key: "return-pool" as const,
                   title: "Voltar para a fila",
-                  description: "Esse lead sai da carteira atual e volta para a fila de distribuiÃ§Ã£o.",
+                  description: "Esse lead sai da carteira atual e volta para a fila de distribuição.",
                   icon: RotateCcw,
                   buttonLabel: "Voltar para a fila",
                 },
@@ -1036,8 +1036,8 @@ export default function LeadDetailPage() {
             <div className="grid gap-4 xl:grid-cols-2">
               <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
                 <CardHeader>
-                  <CardTitle>ObservaÃ§Ãµes internas</CardTitle>
-                  <CardDescription>Essas anotaÃ§Ãµes sÃ£o vistas apenas pela equipe.</CardDescription>
+                  <CardTitle>Observações internas</CardTitle>
+                  <CardDescription>Essas anotações são vistas apenas pela equipe.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {notes.length === 0 ? (
@@ -1136,7 +1136,7 @@ export default function LeadDetailPage() {
                   <CardDescription>
                     {canAddNote
                       ? "Registre um contexto interno para o time."
-                      : "Somente admin ou o vendedor responsÃ¡vel podem adicionar notas."}
+                      : "Somente admin ou o vendedor responsável podem adicionar notas."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1146,13 +1146,13 @@ export default function LeadDetailPage() {
                     placeholder={
                       canAddNote
                         ? "Escreva uma observação sobre este lead"
-                        : "VocÃª nÃ£o pode registrar observaÃ§Ãµes neste lead"
+                        : "Você não pode registrar observações neste lead"
                     }
                     onChange={(event) => setNewNote(event.target.value)}
                     className="min-h-40 rounded-2xl text-sm"
                   />
                   <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                    <span>As notas ficam visÃ­veis apenas para a equipe.</span>
+                    <span>As notas ficam visíveis apenas para a equipe.</span>
                     <span>{newNote.trim().length} caractere(s)</span>
                   </div>
                   <Button
@@ -1176,14 +1176,14 @@ export default function LeadDetailPage() {
             <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm">
               <CardHeader>
                 <CardTitle>Conversa</CardTitle>
-                  <CardDescription>Atividades operacionais e histÃ³rico de mensagens deste lead.</CardDescription>
+                  <CardDescription>Atividades operacionais e histórico de mensagens deste lead.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">AÃ§Ãµes realizadas</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Ações realizadas</h3>
                     <p className="text-sm text-muted-foreground">
-                      Tudo o que foi alterado neste lead pela operaÃ§Ã£o.
+                      Tudo o que foi alterado neste lead pela operação.
                     </p>
                   </div>
 
@@ -1194,7 +1194,7 @@ export default function LeadDetailPage() {
                       ))}
                     </div>
                   ) : activities.length === 0 ? (
-                    <StatePanel centered={false}>Ainda nÃ£o houve movimentaÃ§Ãµes nesse lead.</StatePanel>
+                    <StatePanel centered={false}>Ainda não houve movimentações nesse lead.</StatePanel>
                   ) : (
                     <div className="space-y-3">
                       {activities.map((activity) => {
@@ -1212,7 +1212,7 @@ export default function LeadDetailPage() {
                                 <p className="text-sm font-medium text-foreground">{activity.descricao}</p>
                                 <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                                   <span>{activityUserName(activity)}</span>
-                                  <span className="hidden sm:inline">?</span>
+                                  <span className="hidden sm:inline">•</span>
                                   <span>{formatRelativeTime(activity.created_at)}</span>
                                 </div>
                               </div>
@@ -1230,7 +1230,7 @@ export default function LeadDetailPage() {
                 </div>
 
                 {messages.length === 0 ? (
-                  <StatePanel centered={false}>Ainda nÃ£o hÃ¡ mensagens registradas para esse lead.</StatePanel>
+                  <StatePanel centered={false}>Ainda não há mensagens registradas para esse lead.</StatePanel>
                 ) : (
                   <div className="max-h-[500px] space-y-4 overflow-y-auto rounded-[2rem] border border-border/60 bg-muted/35 p-4 sm:p-5">
                     {messages.map((message) => {
@@ -1339,7 +1339,7 @@ export default function LeadDetailPage() {
             <DialogDescription>
               {pendingDeleteNote
                 ? `A nota de ${pendingDeleteNote.authorProfile?.nome || pendingDeleteNote.authorProfile?.email || "autor desconhecido"} será removida permanentemente.`
-                : "Confirme a exclusÃ£o desta nota interna."}
+                : "Confirme a exclusão desta nota interna."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

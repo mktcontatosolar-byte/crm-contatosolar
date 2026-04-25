@@ -46,7 +46,7 @@ type BrokerLead = Pick<
 >
 
 const newUserSchema = z.object({
-  nome: z.string().trim().min(2, "Informe o nome do usuÃ¡rio."),
+  nome: z.string().trim().min(2, "Informe o nome do usuário."),
   email: z.email("Informe um e-mail válido."),
   password: z.string().min(6, "A senha inicial precisa ter ao menos 6 caracteres."),
   role: z.enum(["corretor", "admin"]),
@@ -88,11 +88,11 @@ function formatDate(dateString: string) {
 }
 
 function displayName(member: TeamMember) {
-  return member.nome || member.email || "UsuÃ¡rio sem nome"
+  return member.nome || member.email || "Usuário sem nome"
 }
 
 function displayLeadName(lead: BrokerLead) {
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificaÃ§Ã£o"
+  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
 async function fetchTeamData(): Promise<TeamQueryResult> {
@@ -169,7 +169,7 @@ export default function TeamPage() {
           entityType: "team_member",
           entityId: variables.email.trim().toLowerCase(),
           action: "user_created",
-          description: `UsuÃ¡rio ${variables.nome.trim()} criado`,
+          description: `Usuário ${variables.nome.trim()} criado`,
           afterData: {
             nome: variables.nome.trim(),
             email: variables.email.trim().toLowerCase(),
@@ -186,7 +186,7 @@ export default function TeamPage() {
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : "NÃƒÂ£o foi possÃƒÂ­vel criar o usuÃƒÂ¡rio."
+        error instanceof Error ? error.message : "Não foi possível criar o usuário."
       toast.error(message)
     },
   })
@@ -232,7 +232,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃƒÂ£o foi possÃƒÂ­vel atualizar este usuÃƒÂ¡rio.")
+      toast.error("Não foi possível atualizar este usuário.")
     },
   })
 
@@ -252,7 +252,7 @@ export default function TeamPage() {
           action: "user_deleted",
           description: pendingDeletion
             ? `Usuário ${displayName(pendingDeletion.member)} excluído`
-            : "UsuÃ¡rio excluÃ­do",
+            : "Usuário excluído",
           beforeData: pendingDeletion
             ? {
                 nome: pendingDeletion.member.nome,
@@ -265,7 +265,7 @@ export default function TeamPage() {
       } catch (auditError) {
         console.error("Erro ao registrar log de auditoria:", auditError)
       }
-      toast.success("UsuÃ¡rio excluÃ­do com sucesso.")
+      toast.success("Usuário excluído com sucesso.")
       setPendingDeletion(null)
       await invalidateOperationalQueries()
     },
@@ -280,7 +280,7 @@ export default function TeamPage() {
         return
       }
 
-      toast.error(error instanceof Error ? error.message : "NÃƒÂ£o foi possÃƒÂ­vel excluir o usuÃƒÂ¡rio.")
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o usuário.")
     },
   })
 
@@ -327,7 +327,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃƒÂ£o foi possÃƒÂ­vel devolver esse lead para a fila.")
+      toast.error("Não foi possível devolver esse lead para a fila.")
     },
   })
 
@@ -387,7 +387,7 @@ export default function TeamPage() {
       await invalidateOperationalQueries()
     },
     onError: () => {
-      toast.error("NÃƒÂ£o foi possÃƒÂ­vel devolver todos os leads para a fila.")
+      toast.error("Não foi possível devolver todos os leads para a fila.")
     },
   })
 
@@ -520,10 +520,10 @@ export default function TeamPage() {
   return (
     <div className="space-y-8">
       <PageIntro
-        badge="Pessoas e permissÃµes"
+        badge="Pessoas e permissões"
         badgeTone="amber"
         title="Equipe"
-        description="Cadastre usuÃ¡rios, acompanhe a equipe e organize a distribuiÃ§Ã£o dos leads."
+        description="Cadastre usuários, acompanhe a equipe e organize a distribuição dos leads."
         aside={
           <div className="grid grid-cols-2 gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
             <div>
@@ -588,7 +588,7 @@ export default function TeamPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <UserPlus className="h-5 w-5 text-cyan-600 dark:text-cyan-300" />
-              Novo usuÃ¡rio
+              Novo usuário
             </CardTitle>
             <CardDescription>
               Crie administradores e vendedores pela Edge Function segura, sem expor chave privilegiada no navegador.
@@ -676,7 +676,7 @@ export default function TeamPage() {
                 >
                   {createUserMutation.error instanceof Error
                     ? createUserMutation.error.message
-                    : "NÃƒÂ£o foi possÃƒÂ­vel criar o usuÃƒÂ¡rio."}
+                    : "Não foi possível criar o usuário."}
                 </p>
               ) : null}
 
@@ -776,7 +776,7 @@ export default function TeamPage() {
               Vendedores
             </CardTitle>
             <CardDescription>
-              Veja quem estÃ¡ ativo, quantos leads cada pessoa tem e organize a operaÃ§Ã£o.
+              Veja quem está ativo, quantos leads cada pessoa tem e organize a operação.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -979,9 +979,9 @@ export default function TeamPage() {
             <DialogDescription>
               {pendingStatusChange
                 ? pendingStatusChange.nextActiveState
-                  ? `${displayName(pendingStatusChange.member)} poderÃƒÂ¡ acessar o CRM normalmente novamente.`
-                  : `${displayName(pendingStatusChange.member)} ficarÃƒÂ¡ sem acesso ao CRM, mas os leads, notas e atividades serÃƒÂ£o mantidos.`
-                : "Confirme a altera?f?'?,??f?'?,?o de acesso deste usuário."}
+                  ? `${displayName(pendingStatusChange.member)} poderá acessar o CRM normalmente novamente.`
+                  : `${displayName(pendingStatusChange.member)} ficará sem acesso ao CRM, mas os leads, notas e atividades serão mantidos.`
+                : "Confirme a alteração de acesso deste usuário."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1018,7 +1018,7 @@ export default function TeamPage() {
               Excluir {pendingDeletion ? displayName(pendingDeletion.member) : "usuário"}?
             </DialogTitle>
             <DialogDescription>
-              Essa aÃ§Ã£o remove o acesso dessa pessoa ao sistema. NÃ£o hÃ¡ desfazer por esta tela.
+              Essa ação remove o acesso dessa pessoa ao sistema. Não há desfazer por esta tela.
             </DialogDescription>
           </DialogHeader>
 
@@ -1053,7 +1053,7 @@ export default function TeamPage() {
               {pendingRedistribution
                 ? `${displayLeadName(pendingRedistribution.lead)} vai sair da carteira de ${displayName(
                     pendingRedistribution.broker
-                  )} e voltarÃ¡ para a fila.`
+                  )} e voltará para a fila.`
                 : "Confirme se esse lead deve voltar para a fila."}
             </DialogDescription>
           </DialogHeader>

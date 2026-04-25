@@ -587,7 +587,7 @@ export default function LeadDetailModal({
                     <span>
                       {canAddNote
                         ? "Notas ficam visíveis apenas para a equipe."
-                        : "Voc? precisa ser admin ou vendedor responsável para registrar notas."}
+                        : "Você precisa ser admin ou vendedor responsável para registrar notas."}
                     </span>
                     <span>{newNote.trim().length} caractere(s)</span>
                   </div>

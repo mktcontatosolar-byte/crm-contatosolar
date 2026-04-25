@@ -354,7 +354,7 @@ export default function PoolLeadsPage() {
   if (!isAdmin) {
     return (
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Leads sem responsÃ¡vel</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Leads sem responsável</h1>
         <p className="text-sm text-muted-foreground">Somente administradores podem acessar esta tela.</p>
       </div>
     )
@@ -401,7 +401,7 @@ export default function PoolLeadsPage() {
             },
             {
               icon: Building2,
-              label: "Tipo de imÃ³vel",
+              label: "Tipo de imóvel",
               value: formatSupabaseValue(selectedLead.tipoimovel),
             },
             {
@@ -522,7 +522,7 @@ export default function PoolLeadsPage() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={8}>
-                Abre a pÃ¡gina completa com conversa, observaÃ§Ãµes e aÃ§Ãµes do lead.
+                Abre a página completa com conversa, observações e ações do lead.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -550,8 +550,8 @@ export default function PoolLeadsPage() {
       <PageIntro
         badge="Novos contatos"
         badgeTone="amber"
-        title="Leads sem responsÃ¡vel"
-        description="Aqui ficam os novos leads que ainda nÃ£o foram enviados para um vendedor."
+        title="Leads sem responsável"
+        description="Aqui ficam os novos leads que ainda não foram enviados para um vendedor."
         aside={
           <div className="grid gap-3 sm:grid-cols-2">
             {[
@@ -592,7 +592,7 @@ export default function PoolLeadsPage() {
 
       {!loading && leads.length === 0 ? (
         <StatePanel>
-          NÃ£o hÃ¡ novos leads aguardando distribuiÃ§Ã£o. Quando um lead chegar sem responsÃ¡vel, ele vai aparecer aqui.
+          Não há novos leads aguardando distribuição. Quando um lead chegar sem responsável, ele vai aparecer aqui.
         </StatePanel>
       ) : null}
 
@@ -706,7 +706,7 @@ export default function PoolLeadsPage() {
             <DialogDescription>
               {pendingAssignment && pendingBroker
                 ? `Atribuir ${leadDisplayName(pendingAssignment.lead)} para ${pendingBroker.nome || pendingBroker.email}?`
-                : "Voc? quer enviar esse lead para esse vendedor?"}
+                : "Você quer enviar esse lead para esse vendedor?"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

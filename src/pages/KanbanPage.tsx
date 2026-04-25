@@ -475,7 +475,7 @@ export default function KanbanPage() {
       setError("")
     } catch (loadError) {
       console.error("Erro ao carregar kanban:", loadError)
-      setError("NÃ£o conseguimos carregar os leads agora.")
+      setError("Não conseguimos carregar os leads agora.")
     } finally {
       setLoading(false)
     }
@@ -535,7 +535,7 @@ export default function KanbanPage() {
       await loadKanban({ silent: true })
     },
     onError: () => {
-      toast.error("NÃ£o foi possÃ­vel devolver esse lead para a fila.")
+      toast.error("Não foi possível devolver esse lead para a fila.")
     },
   })
 
@@ -609,8 +609,8 @@ export default function KanbanPage() {
     onError: (moveError, _variables, context) => {
       console.error("Erro ao mover lead:", moveError)
       setLeads(context?.previousLeads ?? rollbackLeads ?? leads)
-      setError("NÃ£o foi possÃ­vel mover o lead para a etapa escolhida.")
-      toast.error("NÃ£o foi possÃ­vel mover esse lead.")
+      setError("Não foi possível mover o lead para a etapa escolhida.")
+      toast.error("Não foi possível mover esse lead.")
     },
     onSettled: async () => {
       setMovingLeadId(null)
