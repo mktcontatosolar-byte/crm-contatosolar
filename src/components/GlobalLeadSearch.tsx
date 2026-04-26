@@ -23,7 +23,7 @@ import type { Lead } from "@/types"
 
 type SearchLead = Pick<
   Lead,
-  "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id"
+  "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id" | "lead_entry_type"
 > & {
   brokerName: string | null
 }
@@ -63,6 +63,10 @@ function getStatusBadge(status: string | null) {
   return "border-border/60 bg-muted/60 text-foreground"
 }
 
+function isManualLead(lead: SearchLead) {
+  return (lead.lead_entry_type ?? "").trim().toLowerCase() === "manual"
+}
+
 function useDebouncedValue<T>(value: T, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -76,7 +80,7 @@ function useDebouncedValue<T>(value: T, delay = 300) {
 
 async function searchLeads(query: string): Promise<SearchLead[]> {
   const leads = (await searchCrmLeads(query)) as Array<
-    Pick<Lead, "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id">
+    Pick<Lead, "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id" | "lead_entry_type">
   >
   const brokersById = await fetchLeadBrokerMap(leads)
 
@@ -243,6 +247,11 @@ export default function GlobalLeadSearch({
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-semibold text-foreground">{leadDisplayName(lead)}</p>
+                          {isManualLead(lead) ? (
+                            <Badge className="min-h-6 rounded-full border-cyan-500/20 bg-cyan-500/10 px-2.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300">
+                              Manual
+                            </Badge>
+                          ) : null}
                           <Badge
                             className={cn(
                               "min-h-6 rounded-full px-2.5 text-[11px] font-medium",

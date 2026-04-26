@@ -765,6 +765,14 @@ export default function LeadDetailPage() {
         label: formatSupabaseValue(leadDetail.status_conversa),
         className: "border-primary/20 bg-primary/10 text-primary",
       },
+      ...((leadDetail.lead_entry_type ?? "").trim().toLowerCase() === "manual"
+        ? [
+            {
+              label: "Manual",
+              className: "border-cyan-500/20 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+            },
+          ]
+        : []),
       {
         label: leadDetail.ia_paused ? "IA pausada" : "IA ativa",
         className: leadDetail.ia_paused
@@ -942,6 +950,11 @@ export default function LeadDetailPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <DetailField
+                    icon={MessageSquareText}
+                    label="Entrada no CRM"
+                    value={(leadDetail.lead_entry_type ?? "").trim().toLowerCase() === "manual" ? "Manual" : "Campanha / automação"}
+                  />
                   <DetailField icon={MessageSquareText} label="Origem" value={formatSupabaseValue(leadDetail.origem)} />
                   <DetailField icon={MessageSquareText} label="Campanha" value={formatSupabaseValue(leadDetail.campanha)} />
                   <DetailField icon={MessageSquareText} label="Outra info" value={formatSupabaseValue(leadDetail.outra_info)} />

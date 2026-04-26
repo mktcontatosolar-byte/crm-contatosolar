@@ -21,6 +21,9 @@ type LeadSourceRow = {
   origem: string | null
   email: string | null
   campanha: string | null
+  horario_preferido: string | null
+  lead_entry_type: string | null
+  manual_created_by: string | null
 }
 
 type LeadStateRow = {
@@ -50,7 +53,7 @@ const LEAD_TAGS_TABLE = "crm_lead_tags"
 const LEAD_MESSAGES_TABLE = "n8n_chat_histories_nova"
 
 const leadSourceSelect =
-  "id,data,nome,numero,tipoimovel,valorcontaenergia,outra_info,conta,urgencia,telefone_confirmado,cidade,remotejid,created_at,followup_count,status_conversa,last_interaction_at,origem,email,campanha"
+  "id,data,nome,numero,tipoimovel,valorcontaenergia,outra_info,conta,urgencia,telefone_confirmado,cidade,remotejid,created_at,followup_count,status_conversa,last_interaction_at,origem,email,campanha,horario_preferido,lead_entry_type,manual_created_by"
 
 const leadStateSelect =
   "lead_id,corretor_id,assumed_at,stage_id,arquivado,ia_paused,first_response_at,created_at,updated_at"
@@ -58,6 +61,22 @@ const leadStateSelect =
 export type LeadStatePatch = Partial<
   Pick<LeadStateRow, "corretor_id" | "assumed_at" | "stage_id" | "arquivado" | "ia_paused" | "first_response_at">
 >
+
+export type ManualLeadInput = {
+  nome: string | null
+  telefone: string | null
+  email: string | null
+  horario_preferido: string | null
+  cidade: string | null
+  tipoimovel: string | null
+  valorcontaenergia: string | null
+  outra_info: string | null
+  conta: boolean | null
+  urgencia: string | null
+  telefone_confirmado: string | null
+  origem: string | null
+  campanha: string | null
+}
 
 function toIsoOrNull(value: string | null | undefined) {
   return value ?? null
@@ -153,14 +172,16 @@ function mapLead(base: LeadSourceRow, state?: LeadStateRow | null): Lead {
     cidade: base.cidade,
     email: base.email,
     telefone_contato: formattedPhone,
-    horario_preferido: null,
+    horario_preferido: base.horario_preferido,
     tem_nome: Boolean(base.nome),
     tem_email: Boolean(base.email),
     tem_telefone: Boolean(phoneDigits),
-    tem_horario: false,
+    tem_horario: Boolean(base.horario_preferido),
     status_conversa: base.status_conversa ?? "novo",
     campanha: base.campanha,
     origem: base.origem,
+    lead_entry_type: base.lead_entry_type ?? "meta_ads",
+    manual_created_by: base.manual_created_by ?? null,
     outra_info: base.outra_info,
     corretor_id: state?.corretor_id ?? null,
     assumed_at: state?.assumed_at ?? null,
@@ -448,6 +469,60 @@ export async function updateLeadState(leadId: string, patch: LeadStatePatch) {
   if (error) {
     throw error
   }
+}
+
+export async function createManualLead(input: ManualLeadInput, userId: string) {
+  const now = new Date().toISOString()
+  const leadId = crypto.randomUUID()
+  const phoneDigits = input.telefone?.replace(/\D/g, "") || null
+
+  const { error: insertError } = await supabase.from(LEAD_SOURCE_TABLE).insert({
+    id: leadId,
+    data: now,
+    nome: input.nome?.trim() || null,
+    numero: phoneDigits,
+    tipoimovel: input.tipoimovel?.trim() || null,
+    valorcontaenergia: input.valorcontaenergia?.trim() || null,
+    outra_info: input.outra_info?.trim() || null,
+    conta: input.conta,
+    urgencia: input.urgencia?.trim() || null,
+    telefone_confirmado: input.telefone_confirmado?.trim() || null,
+    cidade: input.cidade?.trim() || null,
+    remotejid: null,
+    created_at: now,
+    followup_count: 0,
+    status_conversa: "novo",
+    last_interaction_at: now,
+    origem: input.origem?.trim() || null,
+    email: input.email?.trim().toLowerCase() || null,
+    campanha: input.campanha?.trim() || null,
+    horario_preferido: input.horario_preferido?.trim() || null,
+    lead_entry_type: "manual",
+    manual_created_by: userId,
+  })
+
+  if (insertError) {
+    throw insertError
+  }
+
+  const stages = await fetchLeadStages()
+
+  await updateLeadState(leadId, {
+    corretor_id: userId,
+    assumed_at: now,
+    stage_id: stages[0]?.id ?? null,
+    arquivado: false,
+    ia_paused: false,
+    first_response_at: null,
+  })
+
+  const createdLead = await fetchLeadById(leadId)
+
+  if (!createdLead) {
+    throw new Error("Não foi possível carregar o lead manual criado.")
+  }
+
+  return createdLead
 }
 
 export async function fetchLeadBrokerMap(leads: Array<Pick<Lead, "corretor_id">>) {

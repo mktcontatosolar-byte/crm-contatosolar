@@ -44,6 +44,8 @@ export type Lead = {
   status_conversa: string
   campanha: string | null
   origem: string | null
+  lead_entry_type: string | null
+  manual_created_by: string | null
   outra_info: string | null
   corretor_id: string | null
   assumed_at?: string | null
@@ -117,6 +119,8 @@ export type LeadDetail = Pick<
   | 'ia_paused'
   | 'campanha'
   | 'origem'
+  | 'lead_entry_type'
+  | 'manual_created_by'
   | 'outra_info'
   | 'created_at'
   | 'first_response_at'

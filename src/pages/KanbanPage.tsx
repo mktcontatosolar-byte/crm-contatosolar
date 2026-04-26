@@ -15,10 +15,11 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Filter, GripVertical, MoreVertical, RotateCcw, X } from "lucide-react"
+import { Filter, GripVertical, MoreVertical, Plus, RotateCcw, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
+import ManualLeadDialog from "@/components/ManualLeadDialog"
 import StatePanel from "@/components/crm/StatePanel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -48,6 +49,7 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
 import {
+  createManualLead,
   fetchKanbanLeads,
   fetchKanbanOrigins,
   fetchLeadStages,
@@ -76,6 +78,7 @@ type KanbanLead = Pick<
   | "outra_info"
   | "origem"
   | "campanha"
+  | "lead_entry_type"
   | "stage_id"
   | "arquivado"
   | "ia_paused"
@@ -131,6 +134,10 @@ function stageForLead(lead: KanbanLead, stages: KanbanStage[]) {
   return stages[0]?.id ?? null
 }
 
+function isManualLead(lead: Pick<KanbanLead, "lead_entry_type">) {
+  return (lead.lead_entry_type ?? "").trim().toLowerCase() === "manual"
+}
+
 function LeadCardBody({
   lead,
   tags,
@@ -162,9 +169,24 @@ function LeadCardBody({
               {leadDisplayName(lead)}
             </CardTitle>
             <p className="text-xs text-muted-foreground">{formatSupabaseValue(lead.telefone_contato)}</p>
-            <Badge variant="outline" className={`h-6 rounded-full px-2.5 text-[11px] font-medium ${originBadgeClasses(lead.origem)}`}>
-              {originBadgeLabel(lead.origem)}
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              {isManualLead(lead) ? (
+                <Badge
+                  variant="outline"
+                  className="h-6 rounded-full border-cyan-500/20 bg-cyan-500/10 px-2.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300"
+                >
+                  Manual
+                </Badge>
+              ) : null}
+              {lead.origem ? (
+                <Badge
+                  variant="outline"
+                  className={`h-6 rounded-full px-2.5 text-[11px] font-medium ${originBadgeClasses(lead.origem)}`}
+                >
+                  {originBadgeLabel(lead.origem)}
+                </Badge>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
@@ -363,6 +385,7 @@ export default function KanbanPage() {
   const [originOptions, setOriginOptions] = useState<string[]>([])
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [pendingRedistribution, setPendingRedistribution] = useState<KanbanLead | null>(null)
+  const [manualLeadDialogOpen, setManualLeadDialogOpen] = useState(false)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null)
   const [hoveredStageId, setHoveredStageId] = useState<string | null>(null)
   const [rollbackLeads, setRollbackLeads] = useState<KanbanLead[] | null>(null)
@@ -621,6 +644,60 @@ export default function KanbanPage() {
     },
   })
 
+  const createManualLeadMutation = useMutation({
+    mutationFn: async (values: Parameters<typeof createManualLead>[0]) => {
+      if (!user) {
+        throw new Error("Sessão inválida para criar o lead manual.")
+      }
+
+      const lead = await createManualLead(values, user.id)
+
+      await logLeadActivity({
+        leadId: lead.id,
+        usuarioId: user.id,
+        tipo: "atribuicao",
+        descricao: "Lead manual criado e atribuído ao vendedor",
+        metadata: {
+          lead_entry_type: "manual",
+        },
+      })
+
+      try {
+        await logAuditEvent({
+          actorUserId: user.id,
+          actorEmail: user.email ?? null,
+          entityType: "lead",
+          entityId: lead.id,
+          action: "manual_created",
+          description: "Lead manual criado no CRM",
+          afterData: {
+            nome: lead.nome_completo,
+            telefone_contato: lead.telefone_contato,
+            email: lead.email,
+            origem: lead.origem,
+            campanha: lead.campanha,
+            lead_entry_type: lead.lead_entry_type,
+            corretor_id: lead.corretor_id,
+          },
+        })
+      } catch (auditError) {
+        console.error("Erro ao registrar log de auditoria:", auditError)
+      }
+
+      return lead
+    },
+    onSuccess: async (lead) => {
+      toast.success(`${leadDisplayName(lead)} foi adicionado ao seu Kanban.`)
+      setManualLeadDialogOpen(false)
+      await invalidateOperationalQueries()
+      await loadKanban({ silent: true })
+    },
+    onError: (createError) => {
+      console.error("Erro ao criar lead manual:", createError)
+      toast.error("Não foi possível salvar esse lead manual agora.")
+    },
+  })
+
   const moveLeadToStage = useCallback(
     (lead: KanbanLead, stageId: string) => {
       if (!stageId) {
@@ -847,12 +924,29 @@ export default function KanbanPage() {
               <span className="text-sm font-semibold text-foreground">{leads.length}</span>
             </div>
           </div>
-          {hasActiveFilters ? (
-            <Button type="button" variant="ghost" className="h-9 rounded-full px-3 text-muted-foreground" onClick={clearFilters}>
-              <X className="h-4 w-4" />
-              Limpar filtros
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {!isAdmin ? (
+              <Button
+                type="button"
+                className="h-10 rounded-full px-4"
+                onClick={() => setManualLeadDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar lead manual
+              </Button>
+            ) : null}
+            {hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 rounded-full px-3 text-muted-foreground"
+                onClick={clearFilters}
+              >
+                <X className="h-4 w-4" />
+                Limpar filtros
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="hidden md:block">{filterFields}</div>
@@ -953,6 +1047,17 @@ export default function KanbanPage() {
             </DndContext>
           </div>
         </section>
+      ) : null}
+
+      {!isAdmin ? (
+        <ManualLeadDialog
+          open={manualLeadDialogOpen}
+          onOpenChange={setManualLeadDialogOpen}
+          onSubmit={async (values) => {
+            await createManualLeadMutation.mutateAsync(values)
+          }}
+          isSubmitting={createManualLeadMutation.isPending}
+        />
       ) : null}
 
       <Dialog open={Boolean(pendingRedistribution)} onOpenChange={(open) => !open && setPendingRedistribution(null)}>
