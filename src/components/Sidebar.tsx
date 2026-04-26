@@ -105,7 +105,7 @@ function SidebarNav({
           Sair
         </Button>
         <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          feito por Gabriel B.
+          Desenvolvido por Gabriel B.
         </p>
       </div>
     </>

@@ -3,6 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Crown,
+  Eye,
+  EyeOff,
   Mail,
   RotateCcw,
   ShieldCheck,
@@ -127,6 +129,7 @@ function isSelfDeleteError(error: unknown) {
 export default function TeamPage() {
   const { isAdmin, user } = useAuth()
   const queryClient = useQueryClient()
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null)
   const [brokerForRedistribution, setBrokerForRedistribution] = useState<TeamMember | null>(null)
   const [pendingRedistribution, setPendingRedistribution] = useState<PendingRedistribution | null>(null)
@@ -636,15 +639,29 @@ export default function TeamPage() {
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="team-password">Senha inicial</Label>
-                  <Input
-                    id="team-password"
-                    type="password"
-                    placeholder="Mínimo de 6 caracteres"
-                    autoComplete="new-password"
-                    disabled={createUserMutation.isPending}
-                    aria-invalid={form.formState.errors.password ? "true" : "false"}
-                    {...form.register("password")}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="team-password"
+                      type={isPasswordVisible ? "text" : "password"}
+                      placeholder="Mínimo de 6 caracteres"
+                      autoComplete="new-password"
+                      disabled={createUserMutation.isPending}
+                      aria-invalid={form.formState.errors.password ? "true" : "false"}
+                      className="pr-12"
+                      {...form.register("password")}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="absolute right-1 top-1 h-9 w-9 rounded-full"
+                      disabled={createUserMutation.isPending}
+                      aria-label={isPasswordVisible ? "Ocultar senha" : "Mostrar senha"}
+                      onClick={() => setIsPasswordVisible((current) => !current)}
+                    >
+                      {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                   {form.formState.errors.password ? (
                     <p className="text-sm text-red-700 dark:text-red-300">
                       {form.formState.errors.password.message}
