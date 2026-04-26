@@ -171,9 +171,14 @@ export default function Sidebar() {
             <div className="flex min-w-0 flex-1 items-center">
               <div className="flex h-16 w-36 shrink-0 items-center justify-start sm:h-20 sm:w-44">
                 <img
-                  src="/logo.png"
+                  src="/logo-dark.png"
                   alt="Logo Contato Solar"
-                  className="h-full w-full object-contain object-left"
+                  className="h-full w-full object-contain object-left dark:hidden"
+                />
+                <img
+                  src="/logo-light.png"
+                  alt="Logo Contato Solar"
+                  className="hidden h-full w-full object-contain object-left dark:block"
                 />
               </div>
             </div>
