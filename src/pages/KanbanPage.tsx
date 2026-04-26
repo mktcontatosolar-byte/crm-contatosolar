@@ -925,16 +925,14 @@ export default function KanbanPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {!isAdmin ? (
-              <Button
-                type="button"
-                className="h-10 rounded-full px-4"
-                onClick={() => setManualLeadDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar lead manual
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              className="h-10 rounded-full px-4"
+              onClick={() => setManualLeadDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar lead manual
+            </Button>
             {hasActiveFilters ? (
               <Button
                 type="button"
@@ -1049,16 +1047,14 @@ export default function KanbanPage() {
         </section>
       ) : null}
 
-      {!isAdmin ? (
-        <ManualLeadDialog
-          open={manualLeadDialogOpen}
-          onOpenChange={setManualLeadDialogOpen}
-          onSubmit={async (values) => {
-            await createManualLeadMutation.mutateAsync(values)
-          }}
-          isSubmitting={createManualLeadMutation.isPending}
-        />
-      ) : null}
+      <ManualLeadDialog
+        open={manualLeadDialogOpen}
+        onOpenChange={setManualLeadDialogOpen}
+        onSubmit={async (values) => {
+          await createManualLeadMutation.mutateAsync(values)
+        }}
+        isSubmitting={createManualLeadMutation.isPending}
+      />
 
       <Dialog open={Boolean(pendingRedistribution)} onOpenChange={(open) => !open && setPendingRedistribution(null)}>
         <DialogContent showCloseButton>
