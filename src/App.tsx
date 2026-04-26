@@ -8,6 +8,7 @@ const KanbanPage = lazy(() => import("@/pages/KanbanPage"))
 const ArchivedLeadsPage = lazy(() => import("@/pages/ArchivedLeadsPage"))
 const LeadDetailPage = lazy(() => import("@/pages/LeadDetailPage"))
 const LogsPage = lazy(() => import("@/pages/LogsPage"))
+const ManualLeadPage = lazy(() => import("@/pages/ManualLeadPage"))
 const MetricsPage = lazy(() => import("@/pages/MetricsPage"))
 const PoolLeadsPage = lazy(() => import("@/pages/PoolLeadsPage"))
 const TeamPage = lazy(() => import("@/pages/TeamPage"))
@@ -88,6 +89,17 @@ export default function App() {
           <PrivateRoute>
             <Suspense fallback={<RouteFallback />}>
               {profile?.role === "admin" ? <ArchivedLeadsPage /> : <Navigate to="/kanban" replace />}
+            </Suspense>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/leads/novo"
+        element={
+          <PrivateRoute>
+            <Suspense fallback={<RouteFallback />}>
+              <ManualLeadPage />
             </Suspense>
           </PrivateRoute>
         }

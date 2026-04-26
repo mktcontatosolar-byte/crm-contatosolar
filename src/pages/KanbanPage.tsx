@@ -19,7 +19,6 @@ import { Filter, GripVertical, MoreVertical, Plus, RotateCcw, X } from "lucide-r
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
-import ManualLeadDialog from "@/components/ManualLeadDialog"
 import StatePanel from "@/components/crm/StatePanel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,7 +48,6 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
 import {
-  createManualLead,
   fetchKanbanLeads,
   fetchKanbanOrigins,
   fetchLeadStages,
@@ -385,7 +383,6 @@ export default function KanbanPage() {
   const [originOptions, setOriginOptions] = useState<string[]>([])
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [pendingRedistribution, setPendingRedistribution] = useState<KanbanLead | null>(null)
-  const [manualLeadDialogOpen, setManualLeadDialogOpen] = useState(false)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null)
   const [hoveredStageId, setHoveredStageId] = useState<string | null>(null)
   const [rollbackLeads, setRollbackLeads] = useState<KanbanLead[] | null>(null)
@@ -644,60 +641,6 @@ export default function KanbanPage() {
     },
   })
 
-  const createManualLeadMutation = useMutation({
-    mutationFn: async (values: Parameters<typeof createManualLead>[0]) => {
-      if (!user) {
-        throw new Error("Sessão inválida para criar o lead manual.")
-      }
-
-      const lead = await createManualLead(values, user.id)
-
-      await logLeadActivity({
-        leadId: lead.id,
-        usuarioId: user.id,
-        tipo: "atribuicao",
-        descricao: "Lead manual criado e atribuído ao vendedor",
-        metadata: {
-          lead_entry_type: "manual",
-        },
-      })
-
-      try {
-        await logAuditEvent({
-          actorUserId: user.id,
-          actorEmail: user.email ?? null,
-          entityType: "lead",
-          entityId: lead.id,
-          action: "manual_created",
-          description: "Lead manual criado no CRM",
-          afterData: {
-            nome: lead.nome_completo,
-            telefone_contato: lead.telefone_contato,
-            email: lead.email,
-            origem: lead.origem,
-            campanha: lead.campanha,
-            lead_entry_type: lead.lead_entry_type,
-            corretor_id: lead.corretor_id,
-          },
-        })
-      } catch (auditError) {
-        console.error("Erro ao registrar log de auditoria:", auditError)
-      }
-
-      return lead
-    },
-    onSuccess: async (lead) => {
-      toast.success(`${leadDisplayName(lead)} foi adicionado ao seu Kanban.`)
-      setManualLeadDialogOpen(false)
-      await invalidateOperationalQueries()
-      await loadKanban({ silent: true })
-    },
-    onError: (createError) => {
-      console.error("Erro ao criar lead manual:", createError)
-      toast.error("Não foi possível salvar esse lead manual agora.")
-    },
-  })
-
   const moveLeadToStage = useCallback(
     (lead: KanbanLead, stageId: string) => {
       if (!stageId) {
@@ -928,7 +871,7 @@ export default function KanbanPage() {
             <Button
               type="button"
               className="h-10 rounded-full px-4"
-              onClick={() => setManualLeadDialogOpen(true)}
+              onClick={() => navigate("/leads/novo")}
             >
               <Plus className="h-4 w-4" />
               Adicionar lead manual
@@ -1046,15 +989,6 @@ export default function KanbanPage() {
           </div>
         </section>
       ) : null}
-
-      <ManualLeadDialog
-        open={manualLeadDialogOpen}
-        onOpenChange={setManualLeadDialogOpen}
-        onSubmit={async (values) => {
-          await createManualLeadMutation.mutateAsync(values)
-        }}
-        isSubmitting={createManualLeadMutation.isPending}
-      />
 
       <Dialog open={Boolean(pendingRedistribution)} onOpenChange={(open) => !open && setPendingRedistribution(null)}>
         <DialogContent showCloseButton>
