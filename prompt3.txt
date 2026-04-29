@@ -1,0 +1,188 @@
+Você precisa corrigir dois pontos de interface e interação.
+
+IMPORTANTE:
+- Pode alterar arquivos localmente.
+- Não faça commit.
+- Não faça push.
+- Não faça deploy.
+- Não altere produção.
+- Preserve regras de negócio, permissões e segurança.
+- Rode npm run lint e npm run build ao final.
+
+CONTEXTO
+
+A interpretação anterior ficou parcialmente errada.
+
+A regra correta é:
+
+1. Na aba COMPETIÇÃO:
+   - Quero apenas 1 gráfico principal.
+   - Ao clicar em um vendedor, deve abrir uma tela/lista/drawer/modal com os projetos daquele vendedor.
+   - Atualmente, quando clico no vendedor na aba Competição, nada abre. Isso precisa ser corrigido.
+
+2. No DASHBOARD GERAL:
+   - Pode ter mais gráficos.
+   - Quero que fique mais visual, organizado e executivo.
+
+AJUSTE 1 — CORRIGIR CLIQUE NO VENDEDOR NA COMPETIÇÃO
+
+Na página:
+
+src/pages/CompetitionPage.tsx
+
+Verifique por que o clique no vendedor não está abrindo a listagem de projetos.
+
+Objetivo:
+- Ao clicar no vendedor no gráfico principal ou no ranking da Competição, abrir um drawer/modal/painel lateral.
+- Esse painel deve listar os projetos daquele vendedor que estão contando na competição.
+
+Regras para os projetos exibidos:
+- data entre 2026-05-01 e 2026-07-30;
+- pago = true;
+- ativo = true;
+- deleted_at is null;
+- vendedor ou vendedor_id correspondente ao vendedor clicado.
+
+A lista deve mostrar:
+- cliente;
+- data;
+- cidade;
+- valor_projeto;
+- status: pago, fechado, instalado.
+
+Permissões:
+- DONO pode ver cliente, valor e detalhes.
+- ADMIN/CORRETOR devem respeitar restrições de dados sensíveis.
+- Se ADMIN/CORRETOR não puderem consultar public.projects diretamente, criar/usar uma view segura ou função segura para buscar os projetos da competição por vendedor.
+- Não quebrar RLS.
+- Não fazer consulta insegura diretamente em projects para perfis sem permissão.
+
+Se necessário, ajustar a migration SQL local para criar uma view segura, por exemplo:
+competition_projects_safe_view
+
+Essa view pode expor apenas os campos necessários para o detalhe da competição, sem CPF, lucro, margem ou custo.
+
+Campos sugeridos da view:
+- id
+- data
+- vendedor
+- vendedor_id
+- cliente_mascarado ou cliente, conforme permissão possível
+- cidade
+- valor_projeto
+- pago
+- fechado
+- instalado
+
+Mas escolha a solução mais compatível com a estrutura atual.
+
+IMPORTANTE:
+Se a view for necessária, apenas altere o arquivo local de migration.
+Não aplique SQL em produção.
+
+AJUSTE 2 — COMPETIÇÃO COM APENAS 1 GRÁFICO PRINCIPAL
+
+Na aba Competição:
+
+- Manter apenas 1 gráfico principal de ranking.
+- Esse gráfico deve mostrar:
+  - vendedor;
+  - quantidade de projetos pagos;
+  - valor total como desempate.
+- Pode manter cards no topo:
+  - líder atual;
+  - projetos pagos;
+  - valor total vendido;
+  - participantes.
+- Pode manter ranking detalhado em formato de lista ou tabela, desde que não pareça um segundo gráfico principal.
+- Evitar duplicação visual.
+
+A regra da competição não deve mudar:
+- período: 2026-05-01 até 2026-07-30;
+- só conta projeto pago;
+- ganha quem tem mais projetos pagos;
+- desempate por soma de valor_projeto.
+
+AJUSTE 3 — DASHBOARD GERAL MAIS VISUAL
+
+No Dashboard Geral:
+
+- Pode ter mais gráficos.
+- Quero que fique mais rico visualmente, mas organizado.
+- Não deixar bagunçado.
+- Usar hierarquia clara.
+
+Sugestões:
+- gráfico de faturamento por vendedor;
+- projetos pagos por vendedor;
+- vendas por marca;
+- vendas por cidade;
+- formas de pagamento;
+- status operacional;
+- resumo financeiro.
+
+Organização desejada:
+- topo com KPIs principais;
+- meio com gráficos em grid;
+- final com listas compactas.
+
+Evitar:
+- excesso de listas longas;
+- blocos repetidos;
+- informações duplicadas;
+- cards demais sem hierarquia.
+
+AJUSTE 4 — ACENTUAÇÃO
+
+Corrigir textos visíveis:
+- Competição;
+- Não pagos;
+- Não fechados;
+- Não instalados;
+- Visão executiva;
+- Distribuição;
+- Operação;
+- Instalação;
+- Forma de pagamento;
+- Projetos pagos.
+
+ARQUIVOS PROVÁVEIS
+
+Revise principalmente:
+- src/pages/CompetitionPage.tsx
+- src/pages/DashboardGeneralPage.tsx
+- src/lib/projects.ts
+- src/types/projects.ts
+- src/lib/permissions.ts
+- supabase/migrations/20260427_projects_module.sql, apenas se precisar criar view segura para detalhe dos projetos da competição.
+
+VALIDAÇÃO
+
+Depois de ajustar:
+
+1. Testar se clicar no vendedor na Competição abre o drawer/modal/lista.
+2. Confirmar que a lista mostra somente projetos daquele vendedor que contam na competição.
+3. Confirmar que DONO vê detalhes.
+4. Confirmar que ADMIN/CORRETOR não acessam dados indevidos.
+5. Confirmar que Competição ficou com apenas 1 gráfico principal.
+6. Confirmar que Dashboard Geral ficou mais visual e organizado.
+7. Rodar:
+   - npm run lint
+   - npm run build
+
+RELATÓRIO FINAL
+
+Ao final, informe:
+- arquivos alterados;
+- como foi corrigido o clique no vendedor;
+- qual componente abre a lista de projetos;
+- se criou view segura nova;
+- quais campos aparecem na lista;
+- o que mudou na Competição;
+- o que mudou no Dashboard Geral;
+- resultado do lint;
+- resultado do build.
+
+Não faça commit.
+Não faça push.
+Não faça deploy.
