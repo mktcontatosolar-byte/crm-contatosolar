@@ -54,10 +54,12 @@ import {
   fetchLeadAttachments,
   getLeadAttachmentErrorMessage,
   getLeadAttachmentFriendlyTitle,
+  hasActiveEnergyAttachment,
   isLeadAttachmentImage,
   isLeadAttachmentPdf,
   uploadLeadAttachmentFromFile,
 } from "@/lib/leadAttachments"
+import { cleanLeadConversationMessage, shouldHideConversationMessage } from "@/lib/leadMessages"
 import { fetchLeadActivities, safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { formatSupabaseValue } from "@/lib/utils"
@@ -80,19 +82,6 @@ type ExtractedLeadInfo = Partial<Record<ExtractedLeadInfoKey, string>>
 
 const EMPTY_VALUE = "Não informado"
 const BRAZIL_TIME_ZONE = "America/Sao_Paulo"
-const INTERNAL_MESSAGE_MARKERS = [
-  "# DADOS DO LEAD",
-  "DADOS DO LEAD",
-  "PERGUNTA OBRIGATÓRIA",
-  "Tentativa de Contato",
-  "(Input)",
-  "Input",
-  "System:",
-  "system_prompt",
-  "prompt interno",
-  "contexto interno",
-]
-
 function formatDateTime(dateString: string | null | undefined) {
   if (!dateString) {
     return EMPTY_VALUE
@@ -192,31 +181,6 @@ function formatRelativeTime(dateString: string | null | undefined) {
   }
 
   return formatDateTime(dateString)
-}
-
-function shouldHideConversationMessage(content: string) {
-  const normalizedContent = content.toLowerCase()
-
-  return INTERNAL_MESSAGE_MARKERS.some((marker) => normalizedContent.includes(marker.toLowerCase()))
-}
-
-function cleanLeadConversationMessage(text: string) {
-  const normalizedText = text.trim()
-
-  if (!normalizedText) {
-    return text
-  }
-
-  const leadMessageMarker = /\[?\s*mensagem do lead\s*\]?/i
-  const markerMatch = leadMessageMarker.exec(normalizedText)
-
-  if (!markerMatch) {
-    return text
-  }
-
-  const extractedMessage = normalizedText.slice(markerMatch.index + markerMatch[0].length).trim()
-
-  return extractedMessage || text
 }
 
 function getSupabaseErrorMessage(error: unknown, fallback: string) {
@@ -1121,7 +1085,7 @@ export default function LeadDetailPage() {
   const activities = activityQuery.data ?? []
   const notes = notesQuery.data ?? []
   const attachments = attachmentsQuery.data ?? []
-  const hasEnergyAttachment = attachments.length > 0
+  const hasEnergyAttachment = hasActiveEnergyAttachment(attachments)
   const attachmentsErrorMessage = attachmentsQuery.error
     ? getLeadAttachmentErrorMessage(
         attachmentsQuery.error,

@@ -256,6 +256,23 @@ export function validateManualLeadAttachmentFile(file: File) {
   return null
 }
 
+export function validateManualLeadAttachmentOptionalFile(file: File | null | undefined) {
+  if (!file) {
+    return null
+  }
+
+  return validateManualLeadAttachmentFile(file)
+}
+
+export function hasActiveEnergyAttachment(attachments: Array<Pick<LeadAttachment, "attachment_type" | "ativo" | "deleted_at">>) {
+  return attachments.some(
+    (attachment) =>
+      attachment.attachment_type === ENERGY_ATTACHMENT_TYPE &&
+      attachment.ativo === true &&
+      attachment.deleted_at === null
+  )
+}
+
 export async function uploadLeadAttachmentFromFile({
   file,
   lead,
