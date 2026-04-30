@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/useAuth"
 import { logAuditEvent } from "@/lib/auditLogs"
 import { fetchArchivedLeads as fetchArchivedCrmLeads, updateLeadState } from "@/lib/crmLeads"
-import { logLeadActivity } from "@/lib/leadActivity"
+import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { formatSupabaseValue } from "@/lib/utils"
 import type { Lead } from "@/types"
 
@@ -101,12 +101,12 @@ export default function ArchivedLeadsPage() {
         stage_id: null,
       })
 
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId: lead.id,
         usuarioId: user?.id ?? null,
         tipo: "desarquivamento",
         descricao: "Lead desarquivado e devolvido ao pool",
-      })
+      }, { context: "archived-restore-lead" })
 
       try {
         await logAuditEvent({

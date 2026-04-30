@@ -1,10 +1,13 @@
 ﻿import {
   AlertTriangle,
   Archive,
-  Bot,
   CalendarClock,
   CircleDollarSign,
   Clock3,
+  Download,
+  Eye,
+  FileImage,
+  FileText,
   Home,
   MapPin,
   MessageSquareText,
@@ -26,10 +29,17 @@ import { Button } from "@/components/ui/button"
 import { CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  getLeadAttachmentFriendlyTitle,
+  getLeadAttachmentOriginLabel,
+  getLeadAttachmentTypeLabel,
+  isLeadAttachmentImage,
+} from "@/lib/leadAttachments"
 import { cn } from "@/lib/utils"
-import type { ChatMessage, LeadActivity, LeadDetail, LeadNote, Profile } from "@/types"
+import type { ChatMessage, LeadActivity, LeadNote, Profile } from "@/types"
+import type { LeadAttachment } from "@/types/leadAttachments"
 
-type LeadAction = "toggle-ia" | "return-pool" | "archive"
+type LeadAction = "return-pool" | "archive"
 type LeadNoteWithAuthor = LeadNote & { authorProfile: Profile | null }
 
 export type LeadViewModel = {
@@ -48,6 +58,7 @@ export type LeadViewModel = {
 
 type HeaderBadge = {
   label: string
+  tone?: "primary" | "accent" | "muted" | "outline"
   className: string
 }
 
@@ -87,7 +98,7 @@ export function LeadHeaderCard({
                     <Skeleton key={index} className="h-7 w-28 rounded-full" />
                   ))
                 : statusBadges.map((badge) => (
-                    <StatusBadge key={badge.label} className={cn("text-sm", badge.className)}>
+                    <StatusBadge key={badge.label} tone={badge.tone} className={cn("text-sm", badge.className)}>
                       {badge.label}
                     </StatusBadge>
                   ))}
@@ -194,13 +205,138 @@ export function LeadDatesCard({
   )
 }
 
+export function LeadAttachmentsCard({
+  attachments,
+  loading,
+  errorMessage,
+  uploadErrorMessage,
+  uploading,
+  previewingAttachmentId,
+  downloadingAttachmentId,
+  onUploadAttachment,
+  onViewAttachment,
+  onDownloadAttachment,
+  formatDateTime,
+}: {
+  attachments: LeadAttachment[]
+  loading: boolean
+  errorMessage: string | null
+  uploadErrorMessage: string | null
+  uploading: boolean
+  previewingAttachmentId: string | null
+  downloadingAttachmentId: string | null
+  onUploadAttachment: () => void
+  onViewAttachment: (attachment: LeadAttachment) => void
+  onDownloadAttachment: (attachment: LeadAttachment) => void
+  formatDateTime: (value: string | null | undefined) => string
+}) {
+  return (
+    <SectionCard
+      title="Conta de energia"
+      description="Arquivos enviados pelo lead com acesso privado."
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-full"
+          disabled={loading || uploading}
+          onClick={onUploadAttachment}
+        >
+          {uploading
+            ? "Anexando..."
+            : attachments.length === 0
+              ? "Anexar conta"
+              : "Anexar nova conta"}
+        </Button>
+      }
+      contentClassName="space-y-3"
+    >
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 w-full rounded-3xl" />
+          ))}
+        </div>
+      ) : errorMessage ? (
+        <StatePanel tone="warning" centered={false}>
+          {errorMessage}
+        </StatePanel>
+      ) : (
+        <div className="space-y-3">
+          {uploadErrorMessage ? (
+            <StatePanel tone="warning" centered={false}>
+              {uploadErrorMessage}
+            </StatePanel>
+          ) : null}
+
+          {attachments.length === 0 ? (
+            <StatePanel centered={false}>Nenhuma conta de energia anexada ainda.</StatePanel>
+          ) : null}
+
+          {attachments.map((attachment) => {
+            const PreviewIcon = isLeadAttachmentImage(attachment) ? FileImage : FileText
+            const title = getLeadAttachmentFriendlyTitle(attachment)
+            const subtitle = `Enviada em ${formatDateTime(attachment.created_at)}`
+
+            return (
+              <div
+                key={attachment.id}
+                className="rounded-3xl border border-border/60 bg-background/70 p-4"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-2xl border border-border/60 bg-card/90 p-3">
+                        <PreviewIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 space-y-2">
+                        <p className="text-sm font-medium text-foreground">{title}</p>
+                        <p className="text-sm text-muted-foreground">{subtitle}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <StatusBadge>Origem: {getLeadAttachmentOriginLabel(attachment.origem)}</StatusBadge>
+                          <StatusBadge>Tipo: {getLeadAttachmentTypeLabel(attachment)}</StatusBadge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-full"
+                      disabled={previewingAttachmentId === attachment.id || downloadingAttachmentId === attachment.id}
+                      onClick={() => onViewAttachment(attachment)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      {previewingAttachmentId === attachment.id ? "Abrindo..." : "Visualizar"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-full"
+                      disabled={previewingAttachmentId === attachment.id || downloadingAttachmentId === attachment.id}
+                      onClick={() => onDownloadAttachment(attachment)}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {downloadingAttachmentId === attachment.id ? "Preparando..." : "Baixar"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
 export function LeadActionsPanel({
-  leadDetail,
   updating,
   pendingAction,
   onSelectAction,
 }: {
-  leadDetail: LeadDetail
   updating: boolean
   pendingAction: LeadAction | null
   onSelectAction: (action: LeadAction) => void
@@ -210,16 +346,9 @@ export function LeadActionsPanel({
     title: string
     description: string
     buttonLabel: string
-    icon: typeof Bot
+    icon: typeof Archive
     tone?: "default" | "highlight"
   }> = [
-    {
-      key: "toggle-ia",
-      title: "Atendimento automático",
-      description: "Pause ou reative a automação deste atendimento sem perder o histórico.",
-      buttonLabel: leadDetail.ia_paused ? "Reativar IA" : "Pausar IA",
-      icon: Bot,
-    },
     {
       key: "return-pool",
       title: "Voltar para a fila",
@@ -238,7 +367,7 @@ export function LeadActionsPanel({
   ]
 
   return (
-    <div className="grid gap-4 xl:grid-cols-3">
+    <div className="grid gap-4 xl:grid-cols-2">
       {actionItems.map((item) => {
         const Icon = item.icon
         return (
@@ -263,7 +392,7 @@ export function LeadActionsPanel({
               <Button
                 type="button"
                 className="h-12 w-full rounded-full"
-                variant={item.key === "toggle-ia" ? "default" : "outline"}
+                variant="outline"
                 disabled={updating}
                 onClick={() => onSelectAction(item.key)}
               >
@@ -542,7 +671,7 @@ export function LeadConversationPanel({
                       className={cn(
                         "rounded-[1.5rem] px-4 py-3 shadow-sm",
                         isUserMessage
-                          ? "rounded-br-md bg-[color:color-mix(in_oklab,var(--primary)_48%,black)] text-primary-foreground"
+                          ? "rounded-br-md bg-[color:color-mix(in_oklab,var(--primary)_48%,black)] text-white"
                           : "rounded-bl-md border border-border/60 bg-[color:color-mix(in_oklab,var(--card)_72%,black)] text-foreground"
                       )}
                     >
@@ -550,7 +679,7 @@ export function LeadConversationPanel({
                       <p
                         className={cn(
                           "mt-2 text-[11px]",
-                          isUserMessage ? "text-primary-foreground/72" : "text-muted-foreground"
+                          isUserMessage ? "text-white/78" : "text-muted-foreground"
                         )}
                       >
                         {formatTimeOnly(message.created_at)}

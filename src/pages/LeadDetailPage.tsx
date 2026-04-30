@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import StatePanel from "@/components/crm/StatePanel"
 import {
   LeadActionsPanel,
+  LeadAttachmentsCard,
   LeadCommercialInfoCard,
   LeadContactInfoCard,
   LeadConversationPanel,
@@ -40,7 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/useAuth"
 import {
   fetchLeadById,
-  fetchLeadMessages,
+  fetchLeadMessagesByIdentifiers,
   LEAD_MESSAGES_TABLE,
   LEAD_NOTES_TABLE,
   LEAD_SOURCE_TABLE,
@@ -48,12 +49,22 @@ import {
   updateLeadState,
 } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
-import { fetchLeadActivities, logLeadActivity } from "@/lib/leadActivity"
+import {
+  createLeadAttachmentSignedUrl,
+  fetchLeadAttachments,
+  getLeadAttachmentErrorMessage,
+  getLeadAttachmentFriendlyTitle,
+  isLeadAttachmentImage,
+  isLeadAttachmentPdf,
+  uploadLeadAttachmentFromFile,
+} from "@/lib/leadAttachments"
+import { fetchLeadActivities, safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { formatSupabaseValue } from "@/lib/utils"
 import type { ChatMessage, LeadActivity, LeadDetail, LeadNote, Profile } from "@/types"
+import type { LeadAttachment } from "@/types/leadAttachments"
 
-type LeadAction = "toggle-ia" | "return-pool" | "archive"
+type LeadAction = "return-pool" | "archive"
 type LeadNoteWithAuthor = LeadNote & { authorProfile: Profile | null }
 type ExtractedLeadInfoKey =
   | "valorcontaenergia"
@@ -187,6 +198,25 @@ function shouldHideConversationMessage(content: string) {
   const normalizedContent = content.toLowerCase()
 
   return INTERNAL_MESSAGE_MARKERS.some((marker) => normalizedContent.includes(marker.toLowerCase()))
+}
+
+function cleanLeadConversationMessage(text: string) {
+  const normalizedText = text.trim()
+
+  if (!normalizedText) {
+    return text
+  }
+
+  const leadMessageMarker = /\[?\s*mensagem do lead\s*\]?/i
+  const markerMatch = leadMessageMarker.exec(normalizedText)
+
+  if (!markerMatch) {
+    return text
+  }
+
+  const extractedMessage = normalizedText.slice(markerMatch.index + markerMatch[0].length).trim()
+
+  return extractedMessage || text
 }
 
 function getSupabaseErrorMessage(error: unknown, fallback: string) {
@@ -563,7 +593,9 @@ function mapN8nMessages(
 
   return rows
     .map((row) => {
-      const content = extractMessageContent(row.message).trim() || "[mensagem sem conteúdo]"
+      const content =
+        cleanLeadConversationMessage(extractMessageContent(row.message)).trim() ||
+        "[mensagem sem conteúdo]"
       const role = extractMessageRole(row.message)
 
       return {
@@ -620,6 +652,14 @@ export default function LeadDetailPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteContent, setEditingNoteContent] = useState("")
   const [pendingDeleteNote, setPendingDeleteNote] = useState<LeadNoteWithAuthor | null>(null)
+  const [previewingAttachmentId, setPreviewingAttachmentId] = useState<string | null>(null)
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
+  const [selectedAttachment, setSelectedAttachment] = useState<LeadAttachment | null>(null)
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null)
+  const [attachmentPreviewLoading, setAttachmentPreviewLoading] = useState(false)
+  const [attachmentPreviewError, setAttachmentPreviewError] = useState<string | null>(null)
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null)
 
   const canAddNote = Boolean(
     user &&
@@ -638,6 +678,19 @@ export default function LeadDetailPage() {
     queryKey: ["lead-notes", id],
     queryFn: () => loadNotes(),
     enabled: Boolean(id),
+  })
+
+  const attachmentsQuery = useQuery({
+    queryKey: [
+      "lead-attachments",
+      leadDetail?.id,
+      leadDetail?.remotejid,
+      leadDetail?.telefone_confirmado,
+      leadDetail?.numero,
+    ],
+    queryFn: () => fetchLeadAttachments(leadDetail!),
+    enabled: Boolean(leadDetail),
+    retry: false,
   })
 
   const loadNotes = useCallback(async (): Promise<LeadNoteWithAuthor[]> => {
@@ -713,7 +766,13 @@ export default function LeadDetailPage() {
         : Promise.resolve({ data: null, error: null })
 
       const sessionId = getLeadSessionId(detail)
-      const messagesPromise = sessionId ? fetchLeadMessages(sessionId) : Promise.resolve([])
+      const messagesPromise = fetchLeadMessagesByIdentifiers([
+        sessionId,
+        detail.remotejid,
+        detail.numero,
+        detail.telefone_confirmado,
+        detail.telefone_contato,
+      ])
 
       const [messagesResult, brokerResult] = await Promise.all([messagesPromise, brokerPromise])
 
@@ -789,12 +848,12 @@ export default function LeadDetailPage() {
                 : null
 
       if (nextActivity) {
-        await logLeadActivity({
+        await safeLogLeadActivity({
           leadId: id,
           usuarioId: user?.id ?? null,
           tipo: nextActivity.tipo,
           descricao: nextActivity.descricao,
-        })
+        }, { context: `lead-detail-${nextActivity.tipo}` })
 
         try {
           await logAuditEvent({
@@ -1043,6 +1102,13 @@ export default function LeadDetailPage() {
           void queryClient.invalidateQueries({ queryKey: ["lead-notes", id] })
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lead_attachments" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["lead-attachments"] })
+        }
+      )
       .subscribe()
 
     return () => {
@@ -1054,9 +1120,128 @@ export default function LeadDetailPage() {
   const pageTitle = leadDisplayName(leadDetail)
   const activities = activityQuery.data ?? []
   const notes = notesQuery.data ?? []
+  const attachments = attachmentsQuery.data ?? []
+  const hasEnergyAttachment = attachments.length > 0
+  const attachmentsErrorMessage = attachmentsQuery.error
+    ? getLeadAttachmentErrorMessage(
+        attachmentsQuery.error,
+        "Não foi possível carregar os anexos deste lead."
+      )
+    : null
+  const selectedAttachmentTitle = selectedAttachment
+    ? getLeadAttachmentFriendlyTitle(selectedAttachment)
+    : "Conta de energia"
+  const selectedAttachmentDateLabel = selectedAttachment
+    ? `Enviada em ${formatDateTime(selectedAttachment.created_at)}`
+    : null
+  const selectedAttachmentIsPdf = selectedAttachment ? isLeadAttachmentPdf(selectedAttachment) : false
+  const selectedAttachmentIsImage = selectedAttachment ? isLeadAttachmentImage(selectedAttachment) : false
 
   function canManageNote(note: LeadNoteWithAuthor) {
     return Boolean(user && (isAdmin || note.author_id === user.id))
+  }
+
+  async function downloadAttachment(attachment: LeadAttachment) {
+    try {
+      setDownloadingAttachmentId(attachment.id)
+      const signedUrl = await createLeadAttachmentSignedUrl(attachment, { download: true })
+      window.open(signedUrl, "_blank", "noopener,noreferrer")
+    } catch (attachmentError) {
+      const message = getLeadAttachmentErrorMessage(
+        attachmentError,
+        "Não foi possível preparar o download do anexo."
+      )
+      toast.error(message)
+    } finally {
+      setDownloadingAttachmentId(null)
+    }
+  }
+
+  async function uploadAttachmentForLead(file: File) {
+    if (!leadDetail) {
+      return
+    }
+
+    try {
+      setUploadingAttachment(true)
+      setAttachmentUploadError(null)
+
+      await uploadLeadAttachmentFromFile({
+        file,
+        lead: leadDetail,
+        createdBy: user?.id ?? null,
+      })
+
+      await attachmentsQuery.refetch()
+      toast.success("Conta de energia anexada com sucesso.")
+    } catch (attachmentError) {
+      const message = getLeadAttachmentErrorMessage(
+        attachmentError,
+        "Não foi possível anexar a conta. Tente novamente."
+      )
+      setAttachmentUploadError(message)
+      toast.error(message)
+    } finally {
+      setUploadingAttachment(false)
+    }
+  }
+
+  function handleUploadAttachmentClick() {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "application/pdf,image/jpeg,image/png,image/webp"
+
+    input.onchange = () => {
+      const file = input.files?.[0] ?? null
+
+      if (file) {
+        void uploadAttachmentForLead(file)
+      }
+    }
+
+    input.click()
+  }
+
+  async function openAttachmentInNewTab(attachment: LeadAttachment) {
+    try {
+      const signedUrl = await createLeadAttachmentSignedUrl(attachment)
+      window.open(signedUrl, "_blank", "noopener,noreferrer")
+    } catch (attachmentError) {
+      const message = getLeadAttachmentErrorMessage(
+        attachmentError,
+        "Não foi possível abrir o anexo em nova aba."
+      )
+      toast.error(message)
+    }
+  }
+
+  async function openAttachmentPreview(attachment: LeadAttachment) {
+    setSelectedAttachment(attachment)
+    setAttachmentPreviewUrl(null)
+    setAttachmentPreviewError(null)
+    setAttachmentPreviewLoading(true)
+
+    try {
+      setPreviewingAttachmentId(attachment.id)
+      const signedUrl = await createLeadAttachmentSignedUrl(attachment)
+      setAttachmentPreviewUrl(signedUrl)
+    } catch (attachmentError) {
+      const message = getLeadAttachmentErrorMessage(
+        attachmentError,
+        "Não foi possível carregar a visualização deste anexo."
+      )
+      setAttachmentPreviewError(message)
+    } finally {
+      setAttachmentPreviewLoading(false)
+      setPreviewingAttachmentId(null)
+    }
+  }
+
+  function closeAttachmentPreview() {
+    setSelectedAttachment(null)
+    setAttachmentPreviewUrl(null)
+    setAttachmentPreviewError(null)
+    setAttachmentPreviewLoading(false)
   }
 
   function startEditingNote(note: LeadNoteWithAuthor) {
@@ -1079,6 +1264,15 @@ export default function LeadDetailPage() {
         label: formatSupabaseValue(leadDetail.status_conversa),
         className: "border-primary/20 bg-primary/10 text-primary",
       },
+      ...(hasEnergyAttachment
+        ? [
+            {
+              label: "Conta recebida",
+              tone: "accent" as const,
+              className: "text-white",
+            },
+          ]
+        : []),
       ...(isManualLeadRecord(leadDetail)
         ? [
             {
@@ -1088,19 +1282,13 @@ export default function LeadDetailPage() {
           ]
         : []),
       {
-        label: leadDetail.ia_paused ? "IA pausada" : "IA ativa",
-        className: leadDetail.ia_paused
-          ? "crm-badge-highlight"
-          : "crm-badge-brand",
-      },
-      {
         label: leadDetail.arquivado ? "Arquivado" : "Em atendimento",
           className: leadDetail.arquivado
             ? "border-border/60 bg-muted/65 text-foreground"
             : "crm-badge-brand",
       },
     ]
-  }, [leadDetail])
+  }, [hasEnergyAttachment, leadDetail])
 
   const extractedLeadInfo = useMemo(() => extractLeadInfo(leadDetail?.outra_info), [leadDetail?.outra_info])
 
@@ -1127,14 +1315,6 @@ export default function LeadDetailPage() {
   }, [assignedBroker?.email, assignedBroker?.nome, extractedLeadInfo, leadDetail])
 
   const actionCopy = {
-    "toggle-ia": {
-      title: leadDetail?.ia_paused ? "Reativar IA" : "Pausar IA",
-      description: leadDetail?.ia_paused
-        ? "A IA voltara a atuar neste atendimento."
-        : "A IA será pausada neste lead, mantendo todo o histórico.",
-      confirmLabel: leadDetail?.ia_paused ? "Reativar" : "Pausar",
-      run: () => updateLead({ ia_paused: !leadDetail?.ia_paused }, "refresh"),
-    },
     "return-pool": {
       title: "Voltar para a fila",
       description: "Esse lead vai sair da carteira atual e ficar disponível para nova distribuição.",
@@ -1230,6 +1410,19 @@ export default function LeadDetailPage() {
               />
               <LeadContactInfoCard leadView={leadView!} emptyValue={EMPTY_VALUE} />
               <LeadDatesCard leadView={leadView!} emptyValue={EMPTY_VALUE} />
+              <LeadAttachmentsCard
+                attachments={attachments}
+                loading={attachmentsQuery.isLoading}
+                errorMessage={attachmentsErrorMessage}
+                uploadErrorMessage={attachmentUploadError}
+                uploading={uploadingAttachment}
+                previewingAttachmentId={previewingAttachmentId}
+                downloadingAttachmentId={downloadingAttachmentId}
+                onUploadAttachment={handleUploadAttachmentClick}
+                onViewAttachment={(attachment) => void openAttachmentPreview(attachment)}
+                onDownloadAttachment={(attachment) => void downloadAttachment(attachment)}
+                formatDateTime={formatDateTime}
+              />
             </div>
           ) : null}
         </TabsContent>
@@ -1239,7 +1432,6 @@ export default function LeadDetailPage() {
             <TabPanelSkeleton rows={3} />
           ) : leadDetail ? (
             <LeadActionsPanel
-              leadDetail={leadDetail}
               updating={updating}
               pendingAction={pendingAction}
               onSelectAction={setPendingAction}
@@ -1289,6 +1481,95 @@ export default function LeadDetailPage() {
           ) : null}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={Boolean(selectedAttachment)} onOpenChange={(open) => !open && closeAttachmentPreview()}>
+        <DialogContent
+          showCloseButton
+          className="max-h-[calc(100vh-2rem)] overflow-hidden rounded-[2rem] p-0 sm:max-w-5xl"
+        >
+          <div className="flex max-h-[calc(100vh-2rem)] flex-col">
+            <DialogHeader className="gap-2 border-b border-border/60 px-6 py-5">
+              <DialogTitle>{selectedAttachmentTitle}</DialogTitle>
+              <DialogDescription>{selectedAttachmentDateLabel}</DialogDescription>
+            </DialogHeader>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              {attachmentPreviewLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-48 rounded-full" />
+                  <Skeleton className="h-[60vh] w-full rounded-3xl" />
+                </div>
+              ) : attachmentPreviewError ? (
+                <StatePanel tone="warning" centered={false}>
+                  {attachmentPreviewError}
+                </StatePanel>
+              ) : attachmentPreviewUrl && selectedAttachment ? (
+                selectedAttachmentIsImage ? (
+                  <div className="overflow-auto rounded-3xl border border-border/60 bg-background/70 p-3">
+                    <img
+                      src={attachmentPreviewUrl}
+                      alt={selectedAttachmentTitle}
+                      className="mx-auto h-auto max-w-full rounded-2xl"
+                    />
+                  </div>
+                ) : selectedAttachmentIsPdf ? (
+                  <div className="overflow-hidden rounded-3xl border border-border/60 bg-background/70">
+                    <iframe
+                      src={attachmentPreviewUrl}
+                      title={selectedAttachmentTitle}
+                      className="h-[70vh] w-full"
+                    />
+                  </div>
+                ) : (
+                  <StatePanel centered={false}>
+                    A pré-visualização deste arquivo não está disponível no CRM.
+                  </StatePanel>
+                )
+              ) : (
+                <StatePanel centered={false}>
+                  Não foi possível preparar a visualização deste arquivo.
+                </StatePanel>
+              )}
+            </div>
+
+            <DialogFooter className="border-t border-border/60 px-6 py-5 sm:justify-between">
+              {selectedAttachment && selectedAttachmentIsPdf ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-full"
+                  onClick={() => void openAttachmentInNewTab(selectedAttachment)}
+                >
+                  Abrir em nova aba
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-full"
+                  onClick={closeAttachmentPreview}
+                >
+                  Fechar
+                </Button>
+                <Button
+                  type="button"
+                  className="h-11 rounded-full"
+                  disabled={!selectedAttachment || downloadingAttachmentId === selectedAttachment.id}
+                  onClick={() => (selectedAttachment ? void downloadAttachment(selectedAttachment) : undefined)}
+                >
+                  {selectedAttachment && downloadingAttachmentId === selectedAttachment.id
+                    ? "Preparando..."
+                    : "Baixar"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(pendingAction)} onOpenChange={(open) => !open && setPendingAction(null)}>
         <DialogContent showCloseButton>
           <DialogHeader>

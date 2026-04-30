@@ -621,16 +621,30 @@ export async function createManualLead(input: ManualLeadInput, userId: string) {
     throw insertError
   }
 
-  const stages = await fetchLeadStages()
+  try {
+    const stages = await fetchLeadStages()
 
-  await updateLeadState(leadId, {
-    corretor_id: userId,
-    assumed_at: now,
-    stage_id: stages[0]?.id ?? null,
-    arquivado: false,
-    ia_paused: false,
-    first_response_at: null,
-  })
+    await updateLeadState(leadId, {
+      corretor_id: userId,
+      assumed_at: now,
+      stage_id: stages[0]?.id ?? null,
+      arquivado: false,
+      ia_paused: false,
+      first_response_at: null,
+    })
+  } catch (stateError) {
+    try {
+      const { error: rollbackError } = await supabase.from(LEAD_SOURCE_TABLE).delete().eq("id", leadId)
+
+      if (rollbackError) {
+        console.warn("Falha ao reverter lead manual após erro ao criar estado:", rollbackError)
+      }
+    } catch (rollbackError) {
+      console.warn("Falha inesperada ao reverter lead manual após erro ao criar estado:", rollbackError)
+    }
+
+    throw stateError
+  }
 
   const createdLead = await fetchLeadById(leadId)
 

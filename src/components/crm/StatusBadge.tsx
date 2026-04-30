@@ -12,7 +12,7 @@ type StatusBadgeProps = {
 const toneClasses = {
   primary: "crm-badge-brand",
   accent: "crm-badge-highlight",
-  muted: "border-border/60 bg-background/70 text-muted-foreground",
+  muted: "border-border/60 bg-background/70 text-foreground/90 dark:text-foreground",
   outline: "",
 }
 

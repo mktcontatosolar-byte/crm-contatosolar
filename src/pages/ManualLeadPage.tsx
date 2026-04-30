@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/contexts/useAuth"
 import { logAuditEvent } from "@/lib/auditLogs"
 import { createManualLead } from "@/lib/crmLeads"
-import { logLeadActivity } from "@/lib/leadActivity"
+import { safeLogLeadActivity } from "@/lib/leadActivity"
+import { getLeadAttachmentErrorMessage, uploadLeadAttachmentFromFile } from "@/lib/leadAttachments"
 
 export default function ManualLeadPage() {
   const navigate = useNavigate()
@@ -18,14 +19,21 @@ export default function ManualLeadPage() {
   const { user } = useAuth()
 
   const createManualLeadMutation = useMutation({
-    mutationFn: async (values: Parameters<typeof createManualLead>[0]) => {
+    mutationFn: async ({
+      lead: values,
+      attachmentFile,
+    }: {
+      lead: Parameters<typeof createManualLead>[0]
+      attachmentFile: File | null
+    }) => {
       if (!user) {
         throw new Error("Sessão inválida para criar o lead manual.")
       }
 
       const lead = await createManualLead(values, user.id)
+      let attachmentUploadFailed = false
 
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId: lead.id,
         usuarioId: user.id,
         tipo: "atribuicao",
@@ -33,7 +41,7 @@ export default function ManualLeadPage() {
         metadata: {
           lead_entry_type: "manual",
         },
-      })
+      }, { context: "manual-lead-created" })
 
       try {
         await logAuditEvent({
@@ -57,21 +65,50 @@ export default function ManualLeadPage() {
         console.error("Erro ao registrar log de auditoria:", auditError)
       }
 
-      return lead
+      if (attachmentFile) {
+        try {
+          await uploadLeadAttachmentFromFile({
+            file: attachmentFile,
+            lead,
+            createdBy: user.id,
+          })
+        } catch (attachmentError) {
+          attachmentUploadFailed = true
+          console.error("Erro ao anexar conta de energia no lead manual:", attachmentError)
+        }
+      }
+
+      return {
+        lead,
+        attachmentUploadFailed,
+        hadAttachment: Boolean(attachmentFile),
+      }
     },
-    onSuccess: async (lead) => {
-      toast.success(`${lead.nome_completo || lead.email || lead.telefone_contato || "Lead"} foi criado com sucesso.`)
+    onSuccess: async ({ lead, attachmentUploadFailed, hadAttachment }) => {
+      if (hadAttachment && !attachmentUploadFailed) {
+        toast.success("Lead criado com conta de energia anexada.")
+      } else if (hadAttachment && attachmentUploadFailed) {
+        toast.warning("Lead criado, mas não foi possível anexar a conta de energia. Você pode tentar novamente depois.")
+      } else {
+        toast.success("Lead criado com sucesso.")
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["kanban-leads"] }),
         queryClient.invalidateQueries({ queryKey: ["pool-leads"] }),
         queryClient.invalidateQueries({ queryKey: ["team-data"] }),
         queryClient.invalidateQueries({ queryKey: ["lead-activity"] }),
+        queryClient.invalidateQueries({ queryKey: ["lead-attachments"] }),
       ])
       navigate(`/leads/${lead.id}`)
     },
     onError: (createError) => {
       console.error("Erro ao criar lead manual:", createError)
-      toast.error("Não foi possível salvar esse lead manual agora.")
+      toast.error(
+        createError instanceof Error
+          ? getLeadAttachmentErrorMessage(createError, "Não foi possível salvar esse lead manual agora.")
+          : "Não foi possível salvar esse lead manual agora."
+      )
     },
   })
 

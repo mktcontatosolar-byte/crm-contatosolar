@@ -44,7 +44,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/contexts/useAuth"
 import { fetchPoolLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
-import { logLeadActivity } from "@/lib/leadActivity"
+import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { cn, formatSupabaseBoolean, formatSupabaseValue } from "@/lib/utils"
 import type { Lead, Profile } from "@/types"
@@ -221,7 +221,7 @@ export default function PoolLeadsPage() {
       })
 
       const selectedBroker = corretores.find((corretor) => corretor.id === corretorId)
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId,
         usuarioId: user?.id ?? null,
         tipo: "atribuicao",
@@ -229,7 +229,7 @@ export default function PoolLeadsPage() {
         metadata: {
           corretor_id: corretorId,
         },
-      })
+      }, { context: "pool-assign-lead" })
 
       try {
         await logAuditEvent({

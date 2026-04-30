@@ -30,6 +30,24 @@ export async function logLeadActivity({
   }
 }
 
+export async function safeLogLeadActivity(
+  input: LogLeadActivityInput,
+  options?: {
+    context?: string
+  }
+) {
+  try {
+    await logLeadActivity(input)
+    return true
+  } catch (error) {
+    console.warn(
+      `[lead-activity] Falha ao registrar atividade${options?.context ? ` (${options.context})` : ""}:`,
+      error
+    )
+    return false
+  }
+}
+
 export async function fetchLeadActivities(leadId: string) {
   const { data, error } = await supabase
     .from(LEAD_ACTIVITY_TABLE)

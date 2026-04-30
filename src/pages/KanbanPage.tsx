@@ -58,7 +58,7 @@ import {
   updateLeadState,
 } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
-import { logLeadActivity } from "@/lib/leadActivity"
+import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { formatSupabaseValue } from "@/lib/utils"
 import type { KanbanStage, Lead, LeadTag, Profile, Tag } from "@/types"
@@ -516,12 +516,12 @@ export default function KanbanPage() {
         stage_id: null,
       })
 
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId: lead.id,
         usuarioId: user?.id ?? null,
         tipo: "pool",
         descricao: "Lead devolvido ao pool",
-      })
+      }, { context: "kanban-return-pool" })
 
       try {
         await logAuditEvent({
@@ -573,7 +573,7 @@ export default function KanbanPage() {
         first_response_at: lead.first_response_at ?? null,
       })
 
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId: lead.id,
         usuarioId: user?.id ?? null,
         tipo: "etapa",
@@ -582,7 +582,7 @@ export default function KanbanPage() {
           stage_id: stage.id,
           stage_name: stage.nome,
         },
-      })
+      }, { context: "kanban-move-stage" })
       try {
         await logAuditEvent({
           actorUserId: user?.id ?? null,

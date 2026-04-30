@@ -1,10 +1,16 @@
-﻿import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
+import { Paperclip, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  MANUAL_ATTACHMENT_ALLOWED_TYPES,
+  MANUAL_ATTACHMENT_MAX_SIZE_BYTES,
+  validateManualLeadAttachmentFile,
+} from "@/lib/leadAttachments"
 import type { ManualLeadInput } from "@/lib/crmLeads"
 
 type ManualLeadFormState = {
@@ -68,13 +74,16 @@ export default function ManualLeadForm({
   onCancel,
   submitLabel = "Salvar lead",
 }: {
-  onSubmit: (values: ManualLeadInput) => Promise<void>
+  onSubmit: (values: { lead: ManualLeadInput; attachmentFile: File | null }) => Promise<void>
   isSubmitting: boolean
   onCancel: () => void
   submitLabel?: string
 }) {
   const [form, setForm] = useState<ManualLeadFormState>(initialFormState)
   const [error, setError] = useState("")
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const canSubmit = useMemo(() => {
     return Boolean(form.nome.trim() || form.telefone.trim() || form.email.trim())
@@ -88,27 +97,71 @@ export default function ManualLeadForm({
       return
     }
 
+    if (attachmentFile) {
+      const validationMessage = validateManualLeadAttachmentFile(attachmentFile)
+
+      if (validationMessage) {
+        setAttachmentError(validationMessage)
+        return
+      }
+    }
+
     setError("")
+    setAttachmentError("")
 
     await onSubmit({
-      nome: trimOrNull(form.nome),
-      telefone: trimOrNull(form.telefone),
-      email: trimOrNull(form.email),
-      horario_preferido: trimOrNull(form.horario_preferido),
-      cidade: trimOrNull(form.cidade),
-      tipoimovel: trimOrNull(form.tipoimovel),
-      valorcontaenergia: trimOrNull(form.valorcontaenergia),
-      outra_info: trimOrNull(form.outra_info),
-      conta: form.conta === "unknown" ? null : form.conta === "true",
-      urgencia: trimOrNull(form.urgencia),
-      telefone_confirmado: trimOrNull(form.telefone_confirmado),
-      origem: trimOrNull(form.origem),
-      campanha: null,
+      lead: {
+        nome: trimOrNull(form.nome),
+        telefone: trimOrNull(form.telefone),
+        email: trimOrNull(form.email),
+        horario_preferido: trimOrNull(form.horario_preferido),
+        cidade: trimOrNull(form.cidade),
+        tipoimovel: trimOrNull(form.tipoimovel),
+        valorcontaenergia: trimOrNull(form.valorcontaenergia),
+        outra_info: trimOrNull(form.outra_info),
+        conta: form.conta === "unknown" ? null : form.conta === "true",
+        urgencia: trimOrNull(form.urgencia),
+        telefone_confirmado: trimOrNull(form.telefone_confirmado),
+        origem: trimOrNull(form.origem),
+        campanha: null,
+      },
+      attachmentFile,
     })
   }
 
   function updateField<K extends keyof ManualLeadFormState>(field: K, value: ManualLeadFormState[K]) {
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleAttachmentChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0] ?? null
+
+    if (!selectedFile) {
+      setAttachmentFile(null)
+      setAttachmentError("")
+      return
+    }
+
+    const validationMessage = validateManualLeadAttachmentFile(selectedFile)
+
+    if (validationMessage) {
+      setAttachmentFile(null)
+      setAttachmentError(validationMessage)
+      event.target.value = ""
+      return
+    }
+
+    setAttachmentFile(selectedFile)
+    setAttachmentError("")
+  }
+
+  function clearAttachment() {
+    setAttachmentFile(null)
+    setAttachmentError("")
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   return (
@@ -263,6 +316,60 @@ export default function ManualLeadForm({
       </FieldGroup>
 
       <FieldGroup
+        title="Conta de energia"
+        description="Anexe a conta de energia do cliente, se já tiver."
+      >
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 rounded-[1.25rem] border border-dashed border-border/60 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Arquivo opcional</p>
+              <p className="text-sm text-muted-foreground">PDF, JPG, PNG ou WEBP</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full"
+              disabled={isSubmitting}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="mr-2 h-4 w-4" />
+              Selecionar arquivo
+            </Button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={MANUAL_ATTACHMENT_ALLOWED_TYPES.join(",")}
+            className="hidden"
+            disabled={isSubmitting}
+            onChange={handleAttachmentChange}
+          />
+
+          {attachmentFile ? (
+            <div className="flex flex-col gap-3 rounded-[1.25rem] border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{attachmentFile.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  Limite de {Math.round(MANUAL_ATTACHMENT_MAX_SIZE_BYTES / (1024 * 1024))} MB
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10 rounded-full"
+                disabled={isSubmitting}
+                onClick={clearAttachment}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Remover arquivo
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </FieldGroup>
+
+      <FieldGroup
         title="Contexto adicional"
         description="Anote detalhes úteis para o vendedor continuar o atendimento sem perder contexto."
       >
@@ -285,6 +392,12 @@ export default function ManualLeadForm({
         </p>
       ) : null}
 
+      {attachmentError ? (
+        <p className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          {attachmentError}
+        </p>
+      ) : null}
+
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-5 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" className="h-12 rounded-full" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
@@ -296,5 +409,3 @@ export default function ManualLeadForm({
     </form>
   )
 }
-
-

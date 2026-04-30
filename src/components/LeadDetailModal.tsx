@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useId, useRef, useState } from "react"
-import { Archive, Bot, Clock3, Mail, MessageSquareText, Phone, UserRound, X } from "lucide-react"
+import { Archive, Clock3, Mail, MessageSquareText, Phone, UserRound, X } from "lucide-react"
 import StatePanel from "@/components/crm/StatePanel"
+import StatusBadge from "@/components/crm/StatusBadge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/useAuth"
+import { fetchLeadAttachments } from "@/lib/leadAttachments"
 import { supabase } from "@/lib/supabase"
 import type { ChatMessage, LeadDetail, LeadNote, Profile } from "@/types"
 import { toast } from "sonner"
@@ -91,6 +93,7 @@ export default function LeadDetailModal({
   const [savingNote, setSavingNote] = useState(false)
   const [newNote, setNewNote] = useState("")
   const [error, setError] = useState("")
+  const [hasEnergyAttachment, setHasEnergyAttachment] = useState(false)
 
   const canAddNote = Boolean(
     user &&
@@ -159,12 +162,21 @@ export default function LeadDetailModal({
         setError("Lead não encontrado.")
         setLeadDetail(null)
         setAssignedBroker(null)
+        setHasEnergyAttachment(false)
         setMessages([])
         return
       }
 
       const detail = leadData as LeadDetail
       setLeadDetail(detail)
+
+      const attachmentMatches = await fetchLeadAttachments({
+        id: detail.id,
+        remotejid: detail.remotejid,
+        telefone_confirmado: detail.telefone_confirmado,
+        numero: detail.numero ?? detail.telefone_contato,
+      })
+      setHasEnergyAttachment(attachmentMatches.length > 0)
 
       const messagesPromise = supabase
         .from("chat_history")
@@ -347,9 +359,12 @@ export default function LeadDetailModal({
         <CardHeader className="border-b border-border/60 bg-card/80">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
-              <span className="crm-badge-brand inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium">
-                Atendimento
-              </span>
+              <div className="flex flex-wrap gap-2">
+                <span className="crm-badge-brand inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium">
+                  Atendimento
+                </span>
+                {hasEnergyAttachment ? <StatusBadge tone="accent" className="text-white">Conta recebida</StatusBadge> : null}
+              </div>
               <div className="space-y-2">
                 <CardTitle id={titleId} className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
                   {leadDisplayName(leadDetail ?? lead)}
@@ -381,9 +396,9 @@ export default function LeadDetailModal({
                 </p>
               </div>
               <div className="rounded-[1.25rem] border border-border/60 bg-background/70 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">IA</p>
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Conta de energia</p>
                 <p className="mt-2 text-sm font-semibold text-foreground">
-                  {leadDetail?.ia_paused ? "Pausada" : "Ativa"}
+                  {hasEnergyAttachment ? "Conta recebida" : "Ainda não enviada"}
                 </p>
               </div>
               <div className="rounded-[1.25rem] border border-border/60 bg-background/70 px-4 py-3">
@@ -471,25 +486,7 @@ export default function LeadDetailModal({
                   </div>
                 </div>
 
-                <div className="grid gap-3 lg:grid-cols-3">
-                  <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-foreground">IA do lead</p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Pause ou reative a automação deste atendimento sem perder o histórico.
-                    </p>
-                    <Button
-                      type="button"
-                      disabled={updating}
-                      className="mt-4 w-full rounded-3xl"
-                      onClick={() =>
-                        void updateLead({ ia_paused: !leadDetail.ia_paused }, "refresh")
-                      }
-                    >
-                      <Bot className="mr-2 h-4 w-4" />
-                      {leadDetail.ia_paused ? "Reativar IA" : "Pausar IA"}
-                    </Button>
-                  </div>
-
+                <div className="grid gap-3 lg:grid-cols-2">
                   <div className="rounded-[1.5rem] border border-border/60 bg-background/70 p-4">
                     <p className="text-sm font-medium text-foreground">Voltar para a fila</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">

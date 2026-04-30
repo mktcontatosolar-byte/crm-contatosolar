@@ -38,7 +38,7 @@ import { Select } from "@/components/ui/select"
 import { useAuth } from "@/contexts/useAuth"
 import { fetchAssignedLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
-import { logLeadActivity } from "@/lib/leadActivity"
+import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { ManageUserRequestError, manageUser } from "@/lib/manageUser"
 import { ROLE_LABEL } from "@/lib/permissions"
 import { supabase } from "@/lib/supabase"
@@ -302,12 +302,12 @@ export default function TeamPage() {
         stage_id: null,
       })
 
-      await logLeadActivity({
+      await safeLogLeadActivity({
         leadId: lead.id,
         usuarioId: user?.id ?? null,
         tipo: "pool",
         descricao: "Lead devolvido ao pool",
-      })
+      }, { context: "team-redistribute-single" })
 
       try {
         await logAuditEvent({
@@ -360,12 +360,12 @@ export default function TeamPage() {
 
       await Promise.all(
         leads.map((lead) =>
-          logLeadActivity({
+          safeLogLeadActivity({
             leadId: lead.id,
             usuarioId: user?.id ?? null,
             tipo: "pool",
             descricao: "Lead devolvido ao pool",
-          })
+          }, { context: "team-redistribute-bulk" })
         )
       )
 
