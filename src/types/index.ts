@@ -4,6 +4,8 @@ export type Profile = {
   id: string
   email: string | null
   nome: string | null
+  whatsapp_number: string | null
+  notify_new_leads: boolean
   role: UserRole
   ativo: boolean
   created_at: string

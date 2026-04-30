@@ -44,7 +44,7 @@ import { ROLE_LABEL } from "@/lib/permissions"
 import { supabase } from "@/lib/supabase"
 import type { Lead, Profile, UserRole } from "@/types"
 
-type TeamMember = Pick<Profile, "id" | "nome" | "email" | "role" | "ativo" | "created_at">
+type TeamMember = Pick<Profile, "id" | "nome" | "email" | "role" | "ativo" | "created_at" | "whatsapp_number" | "notify_new_leads">
 type BrokerLead = Pick<
   Lead,
   "id" | "nome_completo" | "email" | "telefone_contato" | "corretor_id" | "arquivado"
@@ -80,6 +80,12 @@ type PendingStatusChange = {
   nextActiveState: boolean
 }
 
+type BrokerNotificationUpdatePayload = {
+  memberId: string
+  whatsappNumber: string
+  notifyNewLeads: boolean
+}
+
 const initialFormValues: NewUserFormValues = {
   nome: "",
   email: "",
@@ -104,11 +110,36 @@ function displayLeadName(lead: BrokerLead) {
   return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
 }
 
+function normalizeWhatsappNumber(rawValue: string) {
+  const digits = rawValue.replace(/\D/g, "")
+
+  if (!digits) {
+    return {
+      normalized: null,
+      error: null,
+    }
+  }
+
+  const normalized = digits.startsWith("55") ? digits : `55${digits}`
+
+  if (normalized.length < 12 || normalized.length > 13) {
+    return {
+      normalized: null,
+      error: "Informe um WhatsApp válido com DDD.",
+    }
+  }
+
+  return {
+    normalized,
+    error: null,
+  }
+}
+
 async function fetchTeamData(): Promise<TeamQueryResult> {
   const [membersResult, leadsResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id,nome,email,role,ativo,created_at")
+      .select("id,nome,email,role,ativo,created_at,whatsapp_number,notify_new_leads")
       .in("role", ["dono", "admin", "corretor"])
       .order("role", { ascending: true })
       .order("nome", { ascending: true }),
@@ -141,6 +172,9 @@ export default function TeamPage() {
   const [brokerForRedistribution, setBrokerForRedistribution] = useState<TeamMember | null>(null)
   const [pendingRedistribution, setPendingRedistribution] = useState<PendingRedistribution | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null)
+  const [brokerWhatsappById, setBrokerWhatsappById] = useState<Record<string, string>>({})
+  const [brokerNotifyById, setBrokerNotifyById] = useState<Record<string, boolean>>({})
+  const [brokerNotificationErrorById, setBrokerNotificationErrorById] = useState<Record<string, string | null>>({})
 
   const form = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -401,6 +435,62 @@ export default function TeamPage() {
     },
   })
 
+  const updateBrokerNotificationMutation = useMutation({
+    mutationFn: async ({ memberId, whatsappNumber, notifyNewLeads }: BrokerNotificationUpdatePayload) => {
+      const parsedWhatsapp = normalizeWhatsappNumber(whatsappNumber)
+
+      if (parsedWhatsapp.error) {
+        throw new Error(parsedWhatsapp.error)
+      }
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          whatsapp_number: parsedWhatsapp.normalized,
+          notify_new_leads: notifyNewLeads,
+        })
+        .eq("id", memberId)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      return {
+        memberId,
+        whatsapp_number: parsedWhatsapp.normalized,
+        notify_new_leads: notifyNewLeads,
+      }
+    },
+    onSuccess: async (result) => {
+      setBrokerWhatsappById((current) => ({
+        ...current,
+        [result.memberId]: result.whatsapp_number ?? "",
+      }))
+      setBrokerNotifyById((current) => ({
+        ...current,
+        [result.memberId]: result.notify_new_leads,
+      }))
+      setBrokerNotificationErrorById((current) => ({
+        ...current,
+        [result.memberId]: null,
+      }))
+      toast.success("Notificações do vendedor atualizadas com sucesso.")
+      await queryClient.invalidateQueries({ queryKey: ["team-data"] })
+    },
+    onError: (updateError, variables) => {
+      const message =
+        updateError instanceof Error
+          ? updateError.message
+          : "Não foi possível atualizar as notificações deste vendedor."
+
+      setBrokerNotificationErrorById((current) => ({
+        ...current,
+        [variables.memberId]: message,
+      }))
+      toast.error(message)
+    },
+  })
+
   useEffect(() => {
     if (!isAdmin) {
       return
@@ -528,6 +618,32 @@ export default function TeamPage() {
     }
 
     await toggleStatusMutation.mutateAsync(pendingStatusChange.member)
+  }
+
+  async function saveBrokerNotifications(member: TeamMember) {
+    const currentWhatsapp = brokerWhatsappById[member.id] ?? member.whatsapp_number ?? ""
+    const currentNotify = brokerNotifyById[member.id] ?? member.notify_new_leads ?? true
+    const parsedWhatsapp = normalizeWhatsappNumber(currentWhatsapp)
+
+    if (parsedWhatsapp.error) {
+      setBrokerNotificationErrorById((current) => ({
+        ...current,
+        [member.id]: parsedWhatsapp.error,
+      }))
+      toast.error(parsedWhatsapp.error)
+      return
+    }
+
+    setBrokerNotificationErrorById((current) => ({
+      ...current,
+      [member.id]: null,
+    }))
+
+    await updateBrokerNotificationMutation.mutateAsync({
+      memberId: member.id,
+      whatsappNumber: currentWhatsapp,
+      notifyNewLeads: currentNotify,
+    })
   }
 
   if (!isAdmin) {
@@ -880,6 +996,67 @@ export default function TeamPage() {
 
                       <div className="mt-5 border-t border-border/60 pt-4">
                         <div className="flex flex-col gap-3">
+                          <div className="space-y-3 rounded-2xl border border-border/60 bg-card/70 p-3">
+                            <div className="space-y-2">
+                              <Label htmlFor={`broker-whatsapp-${member.id}`} className="text-sm">
+                                WhatsApp para notificações
+                              </Label>
+                              <Input
+                                id={`broker-whatsapp-${member.id}`}
+                                value={brokerWhatsappById[member.id] ?? member.whatsapp_number ?? ""}
+                                onChange={(event) => {
+                                  const value = event.target.value
+                                  setBrokerWhatsappById((current) => ({
+                                    ...current,
+                                    [member.id]: value,
+                                  }))
+                                }}
+                                placeholder="5511999999999"
+                                autoComplete="tel"
+                                disabled={updateBrokerNotificationMutation.isPending}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 px-3 py-2">
+                              <Label htmlFor={`broker-notify-${member.id}`} className="text-sm">
+                                Receber aviso de novo lead
+                              </Label>
+                              <input
+                                id={`broker-notify-${member.id}`}
+                                type="checkbox"
+                                className="h-4 w-4 accent-primary"
+                                checked={brokerNotifyById[member.id] ?? member.notify_new_leads ?? true}
+                                onChange={(event) => {
+                                  const checked = event.target.checked
+                                  setBrokerNotifyById((current) => ({
+                                    ...current,
+                                    [member.id]: checked,
+                                  }))
+                                }}
+                                disabled={updateBrokerNotificationMutation.isPending}
+                              />
+                            </div>
+
+                            {brokerNotificationErrorById[member.id] ? (
+                              <p className="text-xs text-red-700 dark:text-red-300">
+                                {brokerNotificationErrorById[member.id]}
+                              </p>
+                            ) : null}
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-10 w-full rounded-full"
+                              disabled={updateBrokerNotificationMutation.isPending}
+                              onClick={() => void saveBrokerNotifications(member)}
+                            >
+                              {updateBrokerNotificationMutation.isPending &&
+                              updateBrokerNotificationMutation.variables?.memberId === member.id
+                                ? "Salvando..."
+                                : "Salvar notificações"}
+                            </Button>
+                          </div>
+
                           <Button
                             type="button"
                             variant="outline"
