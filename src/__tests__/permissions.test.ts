@@ -53,4 +53,25 @@ describe("permissions", () => {
     expect(hasRoleAtLeast(null, "corretor")).toBe(false)
     expect(hasRoleAtLeast(undefined, "admin")).toBe(false)
   })
+
+  it("com role nula/undefined helpers retornam acesso negado", () => {
+    expect(isOwnerRole(null)).toBe(false)
+    expect(isAdminRole(undefined)).toBe(false)
+    expect(canManageTeam(undefined)).toBe(false)
+    expect(canViewDashboard(null)).toBe(false)
+    expect(canViewProjects(undefined)).toBe(false)
+    expect(canViewCompetition(null)).toBe(false)
+    expect(canViewSensitiveProjectData(undefined)).toBe(false)
+  })
+
+  it("role desconhecida não eleva privilégios", () => {
+    const unknownRole = "guest" as unknown as Parameters<typeof isAdminRole>[0]
+
+    expect(isOwnerRole(unknownRole)).toBe(false)
+    expect(isAdminRole(unknownRole)).toBe(false)
+    expect(canManageTeam(unknownRole)).toBe(false)
+    expect(canManageProjects(unknownRole)).toBe(false)
+    expect(canViewProjects(unknownRole)).toBe(false)
+    expect(canViewSensitiveProjectData(unknownRole)).toBe(false)
+  })
 })

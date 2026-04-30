@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  getLeadAttachmentOriginLabel,
+  getLeadAttachmentTypeLabel,
   hasActiveEnergyAttachment,
+  isLeadAttachmentImage,
+  isLeadAttachmentPdf,
   validateManualLeadAttachmentFile,
   validateManualLeadAttachmentOptionalFile,
 } from "@/lib/leadAttachments"
@@ -54,6 +58,11 @@ describe("lead attachments", () => {
     expect(validateManualLeadAttachmentOptionalFile(null)).toBeNull()
   })
 
+  it("arquivo opcional válido mantém comportamento de validação", () => {
+    const file = createFile("conta.png", "image/png", 1024)
+    expect(validateManualLeadAttachmentOptionalFile(file)).toBeNull()
+  })
+
   it("regra Conta recebida: verdadeiro somente para conta_energia ativa e não deletada", () => {
     expect(
       hasActiveEnergyAttachment([
@@ -80,5 +89,39 @@ describe("lead attachments", () => {
     ).toBe(false)
 
     expect(hasActiveEnergyAttachment([])).toBe(false)
+  })
+
+  it("regra Conta recebida em lista com múltiplos anexos", () => {
+    const attachments = [
+      { attachment_type: "outro", ativo: true, deleted_at: null },
+      { attachment_type: "conta_energia", ativo: false, deleted_at: null },
+      { attachment_type: "conta_energia", ativo: true, deleted_at: null },
+    ]
+
+    expect(hasActiveEnergyAttachment(attachments)).toBe(true)
+  })
+
+  it("reconhece origem manual_crm e whatsapp_n8n", () => {
+    expect(getLeadAttachmentOriginLabel("manual_crm")).toBe("manual_crm")
+    expect(getLeadAttachmentOriginLabel("whatsapp_n8n")).toBe("WhatsApp/N8N")
+  })
+
+  it("detecta tipo PDF por mime e extensão", () => {
+    expect(isLeadAttachmentPdf({ mime_type: "application/pdf", file_name: "conta.bin" })).toBe(true)
+    expect(isLeadAttachmentPdf({ mime_type: "application/octet-stream", file_name: "conta.PDF" })).toBe(true)
+    expect(isLeadAttachmentPdf({ mime_type: "image/png", file_name: "conta.png" })).toBe(false)
+  })
+
+  it("detecta tipo imagem por mime e extensão", () => {
+    expect(isLeadAttachmentImage({ mime_type: "image/jpeg", file_name: "x.bin" })).toBe(true)
+    expect(isLeadAttachmentImage({ mime_type: "application/octet-stream", file_name: "conta.webp" })).toBe(true)
+    expect(isLeadAttachmentImage({ mime_type: "application/pdf", file_name: "conta.pdf" })).toBe(false)
+  })
+
+  it("gera label de tipo de arquivo com fallback correto", () => {
+    expect(getLeadAttachmentTypeLabel({ attachment_type: "conta_energia", mime_type: "application/pdf", file_name: "a" })).toBe("PDF")
+    expect(getLeadAttachmentTypeLabel({ attachment_type: "conta_energia", mime_type: "image/png", file_name: "a" })).toBe("Imagem")
+    expect(getLeadAttachmentTypeLabel({ attachment_type: "conta_energia", mime_type: "application/msword", file_name: "a.doc" })).toBe("application/msword")
+    expect(getLeadAttachmentTypeLabel({ attachment_type: "conta_energia", mime_type: null, file_name: null })).toBe("Arquivo")
   })
 })

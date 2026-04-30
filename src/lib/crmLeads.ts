@@ -89,11 +89,11 @@ function normalizeNullableString(value: string | null | undefined) {
   return normalized.length > 0 ? normalized : null
 }
 
-function normalizeLeadEntryType(value: string | null | undefined) {
+export function normalizeLeadEntryType(value: string | null | undefined) {
   return normalizeNullableString(value)?.toLowerCase() === "manual" ? "manual" : "meta_ads"
 }
 
-function normalizeLeadTimestamp(value: string | null | undefined) {
+export function normalizeLeadTimestamp(value: string | null | undefined) {
   const normalized = normalizeNullableString(value)
 
   if (!normalized) {
@@ -122,11 +122,11 @@ function toIsoOrNull(value: string | null | undefined) {
   return value ?? null
 }
 
-function ensureDate(value: string | null | undefined, fallback?: string | null) {
+export function ensureDate(value: string | null | undefined, fallback?: string | null) {
   return value ?? fallback ?? new Date().toISOString()
 }
 
-function isDateBefore(left: string | null | undefined, right: string | null | undefined) {
+export function isDateBefore(left: string | null | undefined, right: string | null | undefined) {
   if (!left || !right) {
     return false
   }
@@ -141,7 +141,7 @@ function isDateBefore(left: string | null | undefined, right: string | null | un
   return leftTime < rightTime
 }
 
-function extractPhoneFromRemoteJid(remoteJid: string | null | undefined) {
+export function extractPhoneFromRemoteJid(remoteJid: string | null | undefined) {
   if (!remoteJid) {
     return null
   }
@@ -206,7 +206,7 @@ function buildSessionIdCandidates(sessionId: string) {
   return [...candidates]
 }
 
-function formatBrazilPhone(rawPhone: string | null | undefined) {
+export function formatBrazilPhone(rawPhone: string | null | undefined) {
   if (!rawPhone) {
     return null
   }
@@ -232,7 +232,7 @@ function formatBrazilPhone(rawPhone: string | null | undefined) {
   return digits
 }
 
-function mapLead(base: LeadSourceRow, state?: LeadStateRow | null): Lead {
+export function mapLead(base: LeadSourceRow, state?: LeadStateRow | null): Lead {
   const normalizedEntryType = normalizeLeadEntryType(base.lead_entry_type)
   const isManualLead =
     normalizedEntryType === "manual" || Boolean(normalizeNullableString(base.manual_created_by))

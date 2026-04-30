@@ -17,6 +17,16 @@ describe("lead messages", () => {
     expect(cleanLeadConversationMessage(raw)).toBe("Oi, tudo bem?")
   })
 
+  it("mantém conteúdo quando existe estado atual sem marcador de mensagem", () => {
+    const raw = "[ESTADO ATUAL DO LEAD]\nLead aguardando retorno"
+    expect(cleanLeadConversationMessage(raw)).toBe(raw)
+  })
+
+  it("retorna string original para mensagem vazia ou só espaços", () => {
+    expect(cleanLeadConversationMessage("")).toBe("")
+    expect(cleanLeadConversationMessage("   ")).toBe("   ")
+  })
+
   it("faz fallback seguro quando não sobra conteúdo", () => {
     const raw = "[MENSAGEM DO LEAD]"
     expect(cleanLeadConversationMessage(raw)).toBe(raw)
@@ -25,6 +35,8 @@ describe("lead messages", () => {
   it("filtra mensagens internas por marcador conhecido", () => {
     expect(shouldHideConversationMessage("System: instrução interna")).toBe(true)
     expect(shouldHideConversationMessage("PROMPT INTERNO para agente")).toBe(true)
+    expect(shouldHideConversationMessage("Pergunta obrigatória: confirmar dados")).toBe(true)
+    expect(shouldHideConversationMessage("# dados do lead\nNome: Teste")).toBe(true)
   })
 
   it("não filtra mensagens legítimas do cliente", () => {
