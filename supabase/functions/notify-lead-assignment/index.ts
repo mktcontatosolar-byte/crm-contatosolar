@@ -10,10 +10,12 @@ const DUPLICATE_WINDOW_MINUTES = 15
 const NOTIFICATION_PROVIDER = "uazapi"
 
 type UserRole = "dono" | "admin" | "corretor"
+type NotificationEventType = "assignment" | "returned_to_pool"
 
 type NotifyLeadAssignmentPayload = {
   leadId: string
   sellerId: string
+  eventType: NotificationEventType
 }
 
 type LeadRecord = {
@@ -106,6 +108,26 @@ function buildAssignmentMessage(lead: LeadRecord) {
     "",
     "Acesse o CRM e dê sequência no atendimento.",
   ].join("\n")
+}
+
+function buildReturnedToPoolMessage(lead: LeadRecord) {
+  return [
+    "⚠️ Lead removido da sua carteira",
+    "",
+    `Cliente: ${formatValue(lead.nome)}`,
+    `Cidade: ${formatValue(lead.cidade)}`,
+    `Tipo de imóvel: ${formatValue(lead.tipoimovel)}`,
+    "",
+    "Esse lead voltou para a fila de distribuição no CRM.",
+  ].join("\n")
+}
+
+function buildNotificationMessage(eventType: NotificationEventType, lead: LeadRecord) {
+  if (eventType === "returned_to_pool") {
+    return buildReturnedToPoolMessage(lead)
+  }
+
+  return buildAssignmentMessage(lead)
 }
 
 async function requireAuthenticatedUser(request: Request) {
@@ -248,10 +270,12 @@ async function hasRecentSentNotification({
   serviceClient,
   leadId,
   sellerId,
+  eventType,
 }: {
   serviceClient: ReturnType<typeof createClient>
   leadId: string
   sellerId: string
+  eventType: NotificationEventType
 }) {
   const boundary = new Date(Date.now() - DUPLICATE_WINDOW_MINUTES * 60_000).toISOString()
 
@@ -260,7 +284,7 @@ async function hasRecentSentNotification({
     .select("id")
     .eq("lead_id", leadId)
     .eq("seller_id", sellerId)
-    .eq("event_type", "assignment")
+    .eq("event_type", eventType)
     .eq("status", "sent")
     .gte("created_at", boundary)
     .limit(1)
@@ -276,6 +300,7 @@ async function insertNotificationLog({
   serviceClient,
   leadId,
   sellerId,
+  eventType,
   sellerPhone,
   message,
   status,
@@ -287,6 +312,7 @@ async function insertNotificationLog({
   serviceClient: ReturnType<typeof createClient>
   leadId: string
   sellerId: string
+  eventType: NotificationEventType
   sellerPhone: string | null
   message: string
   status: NotificationStatus
@@ -299,7 +325,7 @@ async function insertNotificationLog({
     lead_id: leadId,
     seller_id: sellerId,
     seller_phone: sellerPhone,
-    event_type: "assignment",
+    event_type: eventType,
     message,
     status,
     provider: NOTIFICATION_PROVIDER,
@@ -348,6 +374,8 @@ Deno.serve(async (request) => {
     const body = (await request.json()) as Partial<NotifyLeadAssignmentPayload>
     const leadId = normalizeNullableString(body.leadId)
     const sellerId = normalizeNullableString(body.sellerId)
+    const eventType =
+      body.eventType === undefined ? "assignment" : normalizeNullableString(body.eventType)
 
     if (!leadId || !sellerId) {
       return jsonResponse(400, {
@@ -357,7 +385,15 @@ Deno.serve(async (request) => {
       })
     }
 
-    payload = { leadId, sellerId }
+    if (eventType !== "assignment" && eventType !== "returned_to_pool") {
+      return jsonResponse(400, {
+        success: false,
+        code: "invalid_payload",
+        error: "eventType must be assignment or returned_to_pool.",
+      })
+    }
+
+    payload = { leadId, sellerId, eventType }
   } catch {
     return jsonResponse(400, {
       success: false,
@@ -382,6 +418,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: payload.leadId,
         sellerId: payload.sellerId,
+        eventType: payload.eventType,
         sellerPhone: null,
         message: "Notificação não enviada por falta de permissão.",
         status: "skipped",
@@ -413,13 +450,14 @@ Deno.serve(async (request) => {
       })
     }
 
-    const message = buildAssignmentMessage(lead)
+    const message = buildNotificationMessage(payload.eventType, lead)
 
     if (!seller.ativo) {
       const notificationId = await insertNotificationLog({
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: null,
         message,
         status: "skipped",
@@ -440,6 +478,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: null,
         message,
         status: "skipped",
@@ -460,6 +499,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: seller.whatsapp_number,
         message,
         status: "skipped",
@@ -482,6 +522,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: seller.whatsapp_number,
         message,
         status: "skipped",
@@ -501,6 +542,7 @@ Deno.serve(async (request) => {
       serviceClient,
       leadId: lead.id,
       sellerId: seller.id,
+      eventType: payload.eventType,
     })
 
     if (isDuplicate) {
@@ -508,6 +550,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: sellerWhatsapp,
         message,
         status: "skipped",
@@ -574,6 +617,7 @@ Deno.serve(async (request) => {
         serviceClient,
         leadId: lead.id,
         sellerId: seller.id,
+        eventType: payload.eventType,
         sellerPhone: sellerWhatsapp,
         message,
         status: "sent",
@@ -594,6 +638,7 @@ Deno.serve(async (request) => {
       serviceClient,
       leadId: lead.id,
       sellerId: seller.id,
+      eventType: payload.eventType,
       sellerPhone: sellerWhatsapp,
       message,
       status: "failed",

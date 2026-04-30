@@ -31,6 +31,7 @@ import {
   uploadLeadAttachmentFromFile,
 } from "@/lib/leadAttachments"
 import { fetchLeadActivities, safeLogLeadActivity } from "@/lib/leadActivity"
+import { notifyLeadAssignment } from "@/lib/leadAssignmentNotifications"
 import { supabase } from "@/lib/supabase"
 import type { ChatMessage, LeadDetail, LeadNote, Profile } from "@/types"
 import type { LeadAttachment } from "@/types/leadAttachments"
@@ -276,7 +277,11 @@ export default function LeadDetailPage() {
 
   async function updateLead(
     values: Partial<Pick<LeadDetail, "ia_paused" | "arquivado" | "corretor_id" | "assumed_at" | "stage_id">>,
-    action: "refresh" | "remove"
+    action: "refresh" | "remove",
+    options?: {
+      previousSellerId?: string | null
+      notifyReturnedToPool?: boolean
+    }
   ) {
     if (!id) {
       return
@@ -374,7 +379,21 @@ export default function LeadDetailPage() {
         queryClient.invalidateQueries({ queryKey: ["team-data"] }),
       ])
 
-      toast.success("Lead atualizado com sucesso.")
+      if (options?.notifyReturnedToPool && options.previousSellerId) {
+        const notification = await notifyLeadAssignment(id, options.previousSellerId, "returned_to_pool")
+
+        if (notification.status === "sent") {
+          toast.success("Lead voltou para a fila e o vendedor foi avisado pelo WhatsApp.")
+        } else if (notification.status === "failed" || notification.status === "error") {
+          toast.error("Lead voltou para a fila, mas não foi possível avisar o vendedor pelo WhatsApp.")
+        } else {
+          toast.success("Lead voltou para a fila.")
+        }
+      } else if (values.corretor_id === null && values.assumed_at === null && values.stage_id === null) {
+        toast.success("Lead voltou para a fila.")
+      } else {
+        toast.success("Lead atualizado com sucesso.")
+      }
 
       if (action === "remove") {
         if (window.history.length > 1) {
@@ -723,15 +742,22 @@ export default function LeadDetailPage() {
       title: "Voltar para a fila",
       description: "Esse lead vai sair da carteira atual e ficar disponível para nova distribuição.",
       confirmLabel: "Devolver",
-      run: () =>
-        updateLead(
+      run: () => {
+        const previousSellerId = leadDetail?.corretor_id ?? null
+
+        return updateLead(
           {
             corretor_id: null,
             assumed_at: null,
             stage_id: null,
           },
-          "refresh"
-        ),
+          "refresh",
+          {
+            previousSellerId,
+            notifyReturnedToPool: Boolean(previousSellerId),
+          }
+        )
+      },
     },
     archive: {
       title: "Arquivar lead",

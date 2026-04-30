@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase"
 
 export type LeadAssignmentNotificationStatus = "sent" | "failed" | "skipped" | "error"
+export type LeadAssignmentNotificationEventType = "assignment" | "returned_to_pool"
 
 export type LeadAssignmentNotificationResult = {
   status: LeadAssignmentNotificationStatus
@@ -22,13 +23,15 @@ function toNotificationStatus(status: string | undefined): LeadAssignmentNotific
 
 export async function notifyLeadAssignment(
   leadId: string,
-  sellerId: string
+  sellerId: string,
+  eventType: LeadAssignmentNotificationEventType = "assignment"
 ): Promise<LeadAssignmentNotificationResult> {
   try {
     const { data, error } = await supabase.functions.invoke("notify-lead-assignment", {
       body: {
         leadId,
         sellerId,
+        eventType,
       },
     })
 

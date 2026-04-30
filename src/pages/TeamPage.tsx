@@ -125,7 +125,7 @@ function normalizeWhatsappNumber(rawValue: string) {
   if (normalized.length < 12 || normalized.length > 13) {
     return {
       normalized: null,
-      error: "Informe um WhatsApp válido com DDD.",
+      error: "Informe um WhatsApp válido com DDD. Ex: 34999999999.",
     }
   }
 
@@ -474,20 +474,18 @@ export default function TeamPage() {
         ...current,
         [result.memberId]: null,
       }))
-      toast.success("Notificações do vendedor atualizadas com sucesso.")
       await queryClient.invalidateQueries({ queryKey: ["team-data"] })
+      await queryClient.refetchQueries({ queryKey: ["team-data"], type: "active" })
     },
     onError: (updateError, variables) => {
-      const message =
-        updateError instanceof Error
-          ? updateError.message
-          : "Não foi possível atualizar as notificações deste vendedor."
+      const message = updateError instanceof Error ? updateError.message : null
 
+      console.error(updateError)
       setBrokerNotificationErrorById((current) => ({
         ...current,
         [variables.memberId]: message,
       }))
-      toast.error(message)
+      toast.error("Não foi possível salvar as notificações do vendedor.")
     },
   })
 
@@ -639,11 +637,44 @@ export default function TeamPage() {
       [member.id]: null,
     }))
 
-    await updateBrokerNotificationMutation.mutateAsync({
-      memberId: member.id,
-      whatsappNumber: currentWhatsapp,
-      notifyNewLeads: currentNotify,
-    })
+    try {
+      await updateBrokerNotificationMutation.mutateAsync({
+        memberId: member.id,
+        whatsappNumber: currentWhatsapp,
+        notifyNewLeads: currentNotify,
+      })
+
+      toast.success("Notificações do vendedor atualizadas.")
+    } catch {
+      return
+    }
+  }
+
+  async function removeBrokerWhatsapp(member: TeamMember) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ whatsapp_number: null })
+      .eq("id", member.id)
+
+    if (error) {
+      console.error(error)
+      toast.error("Não foi possível remover o WhatsApp do vendedor.")
+      return
+    }
+
+    setBrokerWhatsappById((current) => ({
+      ...current,
+      [member.id]: "",
+    }))
+    setBrokerNotificationErrorById((current) => ({
+      ...current,
+      [member.id]: null,
+    }))
+
+    await queryClient.invalidateQueries({ queryKey: ["team-data"] })
+    await queryClient.refetchQueries({ queryKey: ["team-data"], type: "active" })
+
+    toast.success("WhatsApp do vendedor removido.")
   }
 
   if (!isAdmin) {
@@ -951,6 +982,10 @@ export default function TeamPage() {
               <div className="grid gap-4 xl:grid-cols-2">
                 {summary.brokers.map((member) => {
                   const assignedCount = summary.assignedByBroker[member.id] ?? 0
+                  const currentWhatsappValue = brokerWhatsappById[member.id] ?? member.whatsapp_number ?? ""
+                  const currentNotifyValue = brokerNotifyById[member.id] ?? member.notify_new_leads ?? true
+                  const hasSavedWhatsapp =
+                    brokerWhatsappById[member.id] === "" ? false : member.whatsapp_number !== null
 
                   return (
                     <div
@@ -996,14 +1031,14 @@ export default function TeamPage() {
 
                       <div className="mt-5 border-t border-border/60 pt-4">
                         <div className="flex flex-col gap-3">
-                          <div className="space-y-3 rounded-2xl border border-border/60 bg-card/70 p-3">
+                          <div className="space-y-3 rounded-2xl border border-border/40 bg-background p-3.5">
                             <div className="space-y-2">
                               <Label htmlFor={`broker-whatsapp-${member.id}`} className="text-sm">
-                                WhatsApp para notificações
+                                WhatsApp
                               </Label>
                               <Input
                                 id={`broker-whatsapp-${member.id}`}
-                                value={brokerWhatsappById[member.id] ?? member.whatsapp_number ?? ""}
+                                value={currentWhatsappValue}
                                 onChange={(event) => {
                                   const value = event.target.value
                                   setBrokerWhatsappById((current) => ({
@@ -1011,30 +1046,48 @@ export default function TeamPage() {
                                     [member.id]: value,
                                   }))
                                 }}
-                                placeholder="5511999999999"
+                                placeholder="Ex: 34999999999"
                                 autoComplete="tel"
                                 disabled={updateBrokerNotificationMutation.isPending}
                               />
+                              <p className="text-xs text-muted-foreground">
+                                Use DDD + número. Ex: 34999999999. O sistema salva como 55 + DDD + número.
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {hasSavedWhatsapp
+                                  ? `Salvo como: ${member.whatsapp_number}`
+                                  : "Nenhum WhatsApp cadastrado."}
+                              </p>
                             </div>
 
-                            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 px-3 py-2">
-                              <Label htmlFor={`broker-notify-${member.id}`} className="text-sm">
-                                Receber aviso de novo lead
-                              </Label>
-                              <input
-                                id={`broker-notify-${member.id}`}
-                                type="checkbox"
-                                className="h-4 w-4 accent-primary"
-                                checked={brokerNotifyById[member.id] ?? member.notify_new_leads ?? true}
-                                onChange={(event) => {
-                                  const checked = event.target.checked
-                                  setBrokerNotifyById((current) => ({
-                                    ...current,
-                                    [member.id]: checked,
-                                  }))
-                                }}
-                                disabled={updateBrokerNotificationMutation.isPending}
-                              />
+                            <div className="space-y-2 rounded-2xl border border-border/40 bg-muted/20 px-3 py-2.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <Label htmlFor={`broker-notify-${member.id}`} className="text-sm">
+                                  Receber aviso quando um lead for atribuído
+                                </Label>
+                                <input
+                                  id={`broker-notify-${member.id}`}
+                                  type="checkbox"
+                                  className="h-4 w-4 accent-primary"
+                                  checked={currentNotifyValue}
+                                  onChange={(event) => {
+                                    const checked = event.target.checked
+                                    setBrokerNotifyById((current) => ({
+                                      ...current,
+                                      [member.id]: checked,
+                                    }))
+                                  }}
+                                  disabled={updateBrokerNotificationMutation.isPending}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Quando ativo, o vendedor recebe uma mensagem no WhatsApp quando um lead entra na carteira dele.
+                              </p>
+                              {currentNotifyValue && !hasSavedWhatsapp ? (
+                                <p className="text-xs text-amber-700 dark:text-amber-300">
+                                  Cadastre um WhatsApp para que os avisos sejam enviados.
+                                </p>
+                              ) : null}
                             </div>
 
                             {brokerNotificationErrorById[member.id] ? (
@@ -1043,18 +1096,31 @@ export default function TeamPage() {
                               </p>
                             ) : null}
 
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-10 w-full rounded-full"
-                              disabled={updateBrokerNotificationMutation.isPending}
-                              onClick={() => void saveBrokerNotifications(member)}
-                            >
-                              {updateBrokerNotificationMutation.isPending &&
-                              updateBrokerNotificationMutation.variables?.memberId === member.id
-                                ? "Salvando..."
-                                : "Salvar notificações"}
-                            </Button>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-10 w-full rounded-full"
+                                disabled={updateBrokerNotificationMutation.isPending}
+                                onClick={() => void saveBrokerNotifications(member)}
+                              >
+                                {updateBrokerNotificationMutation.isPending &&
+                                updateBrokerNotificationMutation.variables?.memberId === member.id
+                                  ? "Salvando..."
+                                  : "Salvar notificações"}
+                              </Button>
+                              {hasSavedWhatsapp ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-10 w-full rounded-full border border-border/60"
+                                  disabled={updateBrokerNotificationMutation.isPending}
+                                  onClick={() => void removeBrokerWhatsapp(member)}
+                                >
+                                  Remover WhatsApp
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
 
                           <Button
