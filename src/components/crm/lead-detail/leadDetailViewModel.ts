@@ -8,6 +8,11 @@ import {
   UserCheck,
 } from "lucide-react"
 
+import {
+  formatCrmDateTime,
+  formatCrmRelativeDateTime,
+  formatCrmTime,
+} from "@/lib/dateTime"
 import { cleanLeadConversationMessage, shouldHideConversationMessage } from "@/lib/leadMessages"
 import { formatSupabaseValue } from "@/lib/utils"
 import type { ChatMessage, LeadActivity, LeadDetail, Profile } from "@/types"
@@ -32,108 +37,19 @@ export type LeadHeaderBadge = {
 }
 
 export const EMPTY_VALUE = "Não informado"
-const BRAZIL_TIME_ZONE = "America/Sao_Paulo"
 
 export function formatDateTime(dateString: string | null | undefined) {
-  if (!dateString) {
-    return EMPTY_VALUE
-  }
-
-  const date = new Date(dateString)
-
-  if (Number.isNaN(date.getTime())) {
-    return EMPTY_VALUE
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: BRAZIL_TIME_ZONE,
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-    .format(date)
-    .replace(",", " às")
+  return formatCrmDateTime(dateString, EMPTY_VALUE)
 }
 
 export function formatTimeOnly(dateString: string | null | undefined) {
-  if (!dateString) {
-    return EMPTY_VALUE
-  }
-
-  const date = new Date(dateString)
-
-  if (Number.isNaN(date.getTime())) {
-    return EMPTY_VALUE
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: BRAZIL_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
+  return formatCrmTime(dateString, EMPTY_VALUE)
 }
 
 export function formatRelativeTime(dateString: string | null | undefined) {
-  if (!dateString) {
-    return EMPTY_VALUE
-  }
-
-  const date = new Date(dateString)
-
-  if (Number.isNaN(date.getTime())) {
-    return EMPTY_VALUE
-  }
-
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMinutes = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-
-  if (diffMs < 60000) {
-    return "agora"
-  }
-
-  if (diffMinutes < 60) {
-    return `há ${diffMinutes} minuto${diffMinutes === 1 ? "" : "s"}`
-  }
-
-  if (diffHours < 24) {
-    return `há ${diffHours} hora${diffHours === 1 ? "" : "s"}`
-  }
-
-  const todayKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: BRAZIL_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now)
-  const targetKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: BRAZIL_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date)
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: BRAZIL_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(yesterday)
-
-  if (targetKey === todayKey) {
-    return `hoje às ${formatTimeOnly(dateString)}`
-  }
-
-  if (targetKey === yesterdayKey) {
-    return `ontem às ${formatTimeOnly(dateString)}`
-  }
-
-  return formatDateTime(dateString)
+  return formatCrmRelativeDateTime(dateString, EMPTY_VALUE)
 }
+
 
 export function getSupabaseErrorMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== "object") {
@@ -632,3 +548,5 @@ function extractMessageRole(message: unknown): ChatMessage["role"] {
 
   return "bot"
 }
+
+

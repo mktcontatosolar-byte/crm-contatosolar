@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { useAuth } from "@/contexts/useAuth"
 import { fetchAssignedLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
+import { formatCrmDate } from "@/lib/dateTime"
 import { logAuditEvent } from "@/lib/auditLogs"
 import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { ManageUserRequestError, manageUser } from "@/lib/manageUser"
@@ -95,7 +96,7 @@ const initialFormValues: NewUserFormValues = {
 }
 
 function formatDate(dateString: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(dateString))
+  return formatCrmDate(dateString, "—")
 }
 
 function roleLabel(role: UserRole) {

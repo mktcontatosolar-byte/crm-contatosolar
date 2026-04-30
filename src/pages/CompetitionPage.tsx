@@ -12,6 +12,7 @@ import BarList from "@/components/projects/BarList"
 import MaskedValue from "@/components/projects/MaskedValue"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
+import { formatCrmDate } from "@/lib/dateTime"
 import {
   buildCompetitionSummaryFromRanking,
   fetchCompetitionProjectsBySeller,
@@ -32,16 +33,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) {
-    return "Sem data"
-  }
-
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) {
-    return value
-  }
-
-  return `${day}/${month}/${year}`
+  return formatCrmDate(value, "Sem data")
 }
 
 type SelectedSeller = {

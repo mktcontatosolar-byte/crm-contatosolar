@@ -1,6 +1,4 @@
 ﻿import { useEffect, useMemo, useState } from "react"
-import { formatDistanceToNow } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import { useNavigate } from "react-router-dom"
 import {
   BadgeCheck,
@@ -44,6 +42,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/contexts/useAuth"
 import { fetchPoolLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
+import { formatCrmRelativeDateTime } from "@/lib/dateTime"
 import { notifyLeadAssignment } from "@/lib/leadAssignmentNotifications"
 import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
@@ -76,10 +75,7 @@ type PendingAssignment = {
 }
 
 function formatRelativeTime(dateString: string) {
-  return formatDistanceToNow(new Date(dateString), {
-    addSuffix: true,
-    locale: ptBR,
-  })
+  return formatCrmRelativeDateTime(dateString)
 }
 
 function leadDisplayName(lead: PoolLead) {

@@ -4,12 +4,14 @@ import {
   ArrowRight,
   BriefcaseBusiness,
   CircleDollarSign,
+  Download,
   Eye,
   EyeOff,
   HandCoins,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import MetricGrid from "@/components/crm/MetricGrid"
 import PageIntro from "@/components/crm/PageIntro"
@@ -23,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
+import { formatCrmDate } from "@/lib/dateTime"
 import {
   buildCategoryTotals,
   buildDashboardSummary,
@@ -37,7 +40,9 @@ import {
   mapProjectStatusSummary,
   toSafeNumber,
 } from "@/lib/projects"
-import { canViewSensitiveProjectData } from "@/lib/permissions"
+import { fetchExportLeadsData } from "@/lib/exportLeadsData"
+import { exportLeadsToExcel } from "@/lib/exportLeadsToExcel"
+import { canViewSensitiveProjectData, isOwnerRole } from "@/lib/permissions"
 import type { ProjectRow, ProjectSafeRow } from "@/types/projects"
 
 function formatCurrency(value: number) {
@@ -49,16 +54,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) {
-    return "Sem data"
-  }
-
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) {
-    return value
-  }
-
-  return `${day}/${month}/${year}`
+  return formatCrmDate(value, "Sem data")
 }
 
 function safeProjectLabel(cliente: string | null, id: string, canViewSensitive: boolean) {
@@ -379,6 +375,8 @@ export default function DashboardGeneralPage() {
   const [privacyMode, setPrivacyMode] = useState(() => window.localStorage.getItem("dashboard-general-privacy") === "true")
   const [selectedSeller, setSelectedSeller] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [exportingLeads, setExportingLeads] = useState(false)
+  const canExportLeads = isOwnerRole(profile?.role)
 
   useEffect(() => {
     if (!canSeeSensitive) {
@@ -556,6 +554,25 @@ export default function DashboardGeneralPage() {
     }
   }
 
+  async function handleExportLeads() {
+    if (!canExportLeads) {
+      toast.error("Somente o perfil dono pode exportar os leads.")
+      return
+    }
+
+    try {
+      setExportingLeads(true)
+      const exportData = await fetchExportLeadsData(profile?.role)
+      await exportLeadsToExcel(exportData)
+      toast.success("Planilha de leads exportada com sucesso.")
+    } catch (exportError) {
+      console.error("Erro ao exportar leads:", exportError)
+      toast.error("Não foi possível exportar os leads.")
+    } finally {
+      setExportingLeads(false)
+    }
+  }
+
   const activeSeller = sellerTotals.some((item) => item.vendedor === selectedSeller) ? selectedSeller : null
 
   const sellerRevenueItems = buildVisualItems(
@@ -657,15 +674,28 @@ export default function DashboardGeneralPage() {
               <p className="mt-1 text-3xl font-semibold text-foreground">{canSeeSensitive ? projects.length : safeProjects.length}</p>
             </div>
             {canSeeSensitive ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full"
-                onClick={() => setPrivacyMode((current) => !current)}
-              >
-                {effectivePrivacyMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                {effectivePrivacyMode ? "Desativar privacidade" : "Ativar privacidade"}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setPrivacyMode((current) => !current)}
+                >
+                  {effectivePrivacyMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  {effectivePrivacyMode ? "Desativar privacidade" : "Ativar privacidade"}
+                </Button>
+                {canExportLeads ? (
+                  <Button
+                    type="button"
+                    className="rounded-full"
+                    disabled={exportingLeads}
+                    onClick={() => void handleExportLeads()}
+                  >
+                    <Download className="h-4 w-4" />
+                    {exportingLeads ? "Exportando..." : "Exportar leads"}
+                  </Button>
+                ) : null}
+              </>
             ) : (
               <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-2 text-xs uppercase tracking-[0.16em] text-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />

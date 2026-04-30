@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/useAuth"
+import { formatCrmDateTime } from "@/lib/dateTime"
 import { fetchLeadAttachments } from "@/lib/leadAttachments"
 import { supabase } from "@/lib/supabase"
 import type { ChatMessage, LeadDetail, LeadNote, Profile } from "@/types"
@@ -38,17 +39,6 @@ type LeadDetailModalProps = {
   lead: LeadSummary
   onClose: () => void
   onLeadUpdated: (leadId: string, action: "refresh" | "remove") => void
-}
-
-function formatDateTime(dateString: string | null | undefined) {
-  if (!dateString) {
-    return "Não disponível"
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(dateString))
 }
 
 function leadDisplayName(lead: LeadSummary | LeadDetail) {
@@ -467,11 +457,11 @@ export default function LeadDetailModal({
                     <DetailItem label="Origem" value={leadDetail.origem || "Não informada"} />
                     <DetailItem label="Campanha" value={leadDetail.campanha || "Não informada"} />
                     <DetailItem label="Outra info" value={leadDetail.outra_info || "Não informada"} />
-                    <DetailItem label="Data de criação" value={formatDateTime(leadDetail.created_at)} icon={Clock3} />
+                    <DetailItem label="Data de criação" value={formatCrmDateTime(leadDetail.created_at, "Não disponível")} icon={Clock3} />
                     <DetailItem label="Data de qualificação" value="Não disponível na tabela atual" />
                     <DetailItem
                       label="Última interação"
-                      value={formatDateTime(leadDetail.last_interaction_at)}
+                      value={formatCrmDateTime(leadDetail.last_interaction_at, "Não disponível")}
                       icon={Clock3}
                     />
                   </div>
@@ -556,7 +546,7 @@ export default function LeadDetailModal({
                               "Autor desconhecido"}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {formatDateTime(note.created_at)}
+                            {formatCrmDateTime(note.created_at, "Não disponível")}
                           </span>
                         </div>
                         <p className="whitespace-pre-wrap break-words leading-6">{note.content}</p>
@@ -622,7 +612,7 @@ export default function LeadDetailModal({
                               {message.role}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {formatDateTime(message.created_at)}
+                              {formatCrmDateTime(message.created_at, "Não disponível")}
                             </span>
                           </div>
                           <p className="whitespace-pre-wrap break-words leading-6">{message.content}</p>

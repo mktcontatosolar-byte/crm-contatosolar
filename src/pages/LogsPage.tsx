@@ -13,14 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { useAuth } from "@/contexts/useAuth"
 import { fetchAuditLogs } from "@/lib/auditLogs"
+import { formatCrmDateTime } from "@/lib/dateTime"
 import { formatSupabaseValue } from "@/lib/utils"
-
-function formatDateTime(dateString: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(dateString))
-}
 
 function JsonBlock({ value }: { value: Record<string, unknown> | null }) {
   if (!value || Object.keys(value).length === 0) {
@@ -205,7 +199,7 @@ export default function LogsPage() {
                   <StatusBadge tone="outline">{formatSupabaseValue(log.entity_type)}</StatusBadge>
                 </div>
               }
-              description={`${formatDateTime(log.created_at)} · ${formatSupabaseValue(log.entity_id)}`}
+              description={`${formatCrmDateTime(log.created_at)} · ${formatSupabaseValue(log.entity_id)}`}
               actions={
                 <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm">
                   <div className="flex items-center gap-2 text-foreground">

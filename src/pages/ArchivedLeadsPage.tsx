@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/useAuth"
 import { logAuditEvent } from "@/lib/auditLogs"
 import { fetchArchivedLeads as fetchArchivedCrmLeads, updateLeadState } from "@/lib/crmLeads"
+import { formatCrmDateTime } from "@/lib/dateTime"
 import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { formatSupabaseValue } from "@/lib/utils"
 import type { Lead } from "@/types"
@@ -44,14 +45,7 @@ function leadDisplayName(lead: ArchivedLead) {
 }
 
 function formatDate(dateString: string | null) {
-  if (!dateString) {
-    return "Vazio"
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(dateString))
+  return formatCrmDateTime(dateString, "Vazio")
 }
 
 async function fetchArchivedLeads(): Promise<ArchivedLead[]> {
