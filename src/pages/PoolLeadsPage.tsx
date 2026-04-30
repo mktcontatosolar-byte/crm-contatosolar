@@ -44,6 +44,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/contexts/useAuth"
 import { fetchPoolLeads, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
+import { notifyLeadAssignment } from "@/lib/leadAssignmentNotifications"
 import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
 import { cn, formatSupabaseBoolean, formatSupabaseValue } from "@/lib/utils"
@@ -264,7 +265,21 @@ export default function PoolLeadsPage() {
       })
       setPendingAssignment(null)
       setError("")
-      toast.success("Lead enviado com sucesso.")
+
+      try {
+        const notification = await notifyLeadAssignment(leadId, corretorId)
+
+        if (notification.status === "sent") {
+          toast.success("Lead atribuído e vendedor avisado pelo WhatsApp.")
+        } else if (notification.status === "failed" || notification.status === "error") {
+          toast.warning("Lead atribuído, mas não foi possível avisar o vendedor pelo WhatsApp.")
+        } else {
+          toast.success("Lead enviado com sucesso.")
+        }
+      } catch (notificationError) {
+        console.error("Erro ao processar notificação de atribuição:", notificationError)
+        toast.warning("Lead atribuído, mas não foi possível avisar o vendedor pelo WhatsApp.")
+      }
     } catch (assignError) {
       console.error("Erro ao atribuir lead:", assignError)
       setError("Não foi possível enviar esse lead agora.")
