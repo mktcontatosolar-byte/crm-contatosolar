@@ -51,6 +51,15 @@ function isValidRole(role: string): role is UserRole {
   return role === "dono" || role === "admin" || role === "corretor"
 }
 
+function normalizeRole(role: unknown): UserRole | null {
+  if (typeof role !== "string") {
+    return null
+  }
+
+  const normalizedRole = role.trim().toLowerCase()
+  return isValidRole(normalizedRole) ? normalizedRole : null
+}
+
 async function findAuthUserByEmail(
   serviceClient: ReturnType<typeof createClient>,
   email: string
@@ -144,7 +153,9 @@ async function requireManager(request: Request) {
     }
   }
 
-  if (!profile || !profile.ativo || (profile.role !== "dono" && profile.role !== "admin")) {
+  const requesterRole = normalizeRole(profile?.role)
+
+  if (!profile || !profile.ativo || (requesterRole !== "dono" && requesterRole !== "admin")) {
     return {
       ok: false as const,
       response: jsonResponse(403, {
@@ -159,7 +170,7 @@ async function requireManager(request: Request) {
     ok: true as const,
     serviceClient,
     requesterId: user.id,
-    requesterRole: profile.role as UserRole,
+    requesterRole,
   }
 }
 
@@ -179,7 +190,9 @@ async function handleCreateUser(
     })
   }
 
-  if (!isValidRole(payload.role)) {
+  const payloadRole = normalizeRole(payload.role)
+
+  if (!payloadRole) {
     return jsonResponse(400, {
       success: false,
       code: "invalid_role",
@@ -187,7 +200,7 @@ async function handleCreateUser(
     })
   }
 
-  if (requesterRole === "admin" && payload.role !== "corretor") {
+  if (requesterRole === "admin" && payloadRole !== "corretor") {
     return jsonResponse(403, {
       success: false,
       code: "admin_role_scope_forbidden",
@@ -195,7 +208,7 @@ async function handleCreateUser(
     })
   }
 
-  if (payload.role === "dono" && requesterRole !== "dono") {
+  if (payloadRole === "dono" && requesterRole !== "dono") {
     return jsonResponse(403, {
       success: false,
       code: "owner_only_role",
@@ -203,7 +216,7 @@ async function handleCreateUser(
     })
   }
 
-  if (payload.role === "admin" && requesterRole !== "dono") {
+  if (payloadRole === "admin" && requesterRole !== "dono") {
     return jsonResponse(403, {
       success: false,
       code: "owner_only_admin_creation",
@@ -259,7 +272,7 @@ async function handleCreateUser(
       id: authUser.id,
       email: authUser.email ?? email,
       nome,
-      role: payload.role,
+      role: payloadRole,
       ativo: payload.ativo,
     },
     { onConflict: "id" }
@@ -286,7 +299,7 @@ async function handleCreateUser(
       id: authUser.id,
       email: authUser.email ?? email,
       nome,
-      role: payload.role,
+      role: payloadRole,
       ativo: payload.ativo,
     },
   })
@@ -329,7 +342,9 @@ async function handleDeleteUser(
     })
   }
 
-  if (targetProfile?.role === "dono" && requesterRole !== "dono") {
+  const targetRole = normalizeRole(targetProfile?.role)
+
+  if (targetRole === "dono" && requesterRole !== "dono") {
     return jsonResponse(403, {
       success: false,
       code: "owner_delete_forbidden",

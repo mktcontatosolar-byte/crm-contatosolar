@@ -58,10 +58,30 @@ export class ManageUserRequestError extends Error {
   }
 }
 
+const MANAGE_USER_ERROR_MESSAGES: Record<string, string> = {
+  admin_role_scope_forbidden: "Admins só podem criar contas de vendedor.",
+  assigned_leads_block: "Este usuário ainda possui leads ativos vinculados.",
+  forbidden: "Somente donos ou administradores ativos podem gerenciar usuários.",
+  invalid_password: "A senha inicial precisa ter ao menos 6 caracteres.",
+  invalid_role: "Papel inválido. Use dono, admin ou vendedor.",
+  missing_authorization: "Sessão expirada. Entre novamente para continuar.",
+  missing_session: "Sessão expirada. Entre novamente para continuar.",
+  owner_only_admin_creation: "Somente donos podem criar contas de administrador.",
+  owner_only_role: "Somente donos podem criar outro dono.",
+  self_delete_blocked: "Você não pode excluir sua própria conta por este fluxo.",
+}
+
+function translateManageUserError(code: string | undefined, message: string) {
+  return code && MANAGE_USER_ERROR_MESSAGES[code] ? MANAGE_USER_ERROR_MESSAGES[code] : message
+}
+
 function normalizeErrorResponse(body: Partial<ManageUserErrorResponse>, fallback: string) {
+  const code = typeof body.code === "string" ? body.code : undefined
+  const message = typeof body.error === "string" && body.error ? body.error : fallback
+
   return new ManageUserRequestError(
-    typeof body.error === "string" && body.error ? body.error : fallback,
-    typeof body.code === "string" ? body.code : undefined
+    translateManageUserError(code, message),
+    code
   )
 }
 
