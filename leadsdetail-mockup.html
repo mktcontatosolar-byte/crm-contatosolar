@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Detail - CRM Contato Solar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           1. VARIÁVEIS DE TEMA (REFORMA - DIREÇÃO B)
+           ========================================================================== */
+        :root {
+            /* Tema Light (Padrão) */
+            --bg-page: #ffffff;
+            --bg-card: #ffffff;
+            --bg-sidebar: #ffffff;
+            --border: #e5e7eb;
+            --text-main: #111827;
+            --text-sec: #6b7280;
+            --text-tert: #9ca3af;
+
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+
+            --radius-container: 12px;
+            --radius-card: 10px;
+            --radius-input: 8px;
+            --radius-badge: 6px;
+
+            --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
+
+            --sidebar-active-bg: #f3f4f6;
+            --sidebar-active-text: #111827;
+
+            --chat-user-bg: var(--primary);
+            --chat-user-text: #ffffff;
+            --chat-bot-bg: #f3f4f6;
+            --chat-bot-text: var(--text-main);
+        }
+
+        body.dark {
+            /* Tema Dark */
+            --bg-page: #0a0a0a;
+            --bg-card: #18181b;
+            --bg-sidebar: #09090b;
+            --border: #27272a;
+            --text-main: #fafafa;
+            --text-sec: #a1a1aa;
+            --text-tert: #52525b;
+
+            --shadow-card: none;
+
+            --sidebar-active-bg: #18181b;
+            --sidebar-active-text: #fafafa;
+
+            --chat-bot-bg: #27272a;
+            --chat-bot-text: var(--text-main);
+        }
+
+        /* ==========================================================================
+           2. VARIÁVEIS DE TEMA (ATUAL - DESIGN ANTIGO)
+           ========================================================================== */
+        body.atual {
+            --bg-page: linear-gradient(135deg, #f3e8ff 0%, #fef3c7 100%);
+            --bg-card: rgba(255, 255, 255, 0.6);
+            --bg-sidebar: rgba(255, 255, 255, 0.8);
+
+            --radius-container: 24px;
+            --radius-card: 20px;
+            --radius-input: 16px;
+            --radius-badge: 12px;
+
+            --shadow-card: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+            --sidebar-active-bg: var(--primary);
+            --sidebar-active-text: #ffffff;
+
+            --backdrop: blur(12px);
+        }
+
+        body.atual.dark {
+            --bg-page: linear-gradient(135deg, #3b0764 0%, #451a03 100%);
+            --bg-card: rgba(24, 24, 27, 0.6);
+            --bg-sidebar: rgba(9, 9, 11, 0.8);
+            --text-main: #ffffff;
+            --text-sec: #d1d5db;
+        }
+
+        /* ==========================================================================
+           3. BASE & RESET
+           ========================================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-page);
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 400;
+            height: 100vh;
+            overflow: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+
+        input, textarea {
+            font-family: inherit;
+            outline: none;
+        }
+
+        /* Classes utilitárias do modo "Reforma" */
+        body.reforma .hide-in-reforma {
+            display: none !important;
+        }
+
+        /* ==========================================================================
+           4. LAYOUT PRINCIPAL
+           ========================================================================== */
+        .layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        body.atual .sidebar {
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
+        }
+
+        .sidebar-logo-container {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-logo-container img {
+            height: 40px;
+            max-width: 100%;
+        }
+
+        .sidebar-search {
+            padding: 0 16px 16px 16px;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-input);
+            border: 1px solid var(--border);
+            background: var(--bg-page);
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            color: var(--text-sec);
+            text-decoration: none;
+            border-radius: var(--radius-input);
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-page);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active-text);
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .avatar-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            color: var(--text-sec);
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            color: var(--text-main);
+        }
+
+        /* Main Content Area */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        /* ==========================================================================
+           5. COMPONENTES DO LEAD DETAIL
+           ========================================================================== */
+
+        /* Sticky Header */
+        .lead-header {
+            padding: 32px 32px 0 32px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lead-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .lead-title-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: var(--radius-badge);
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-neutral { background: var(--border); color: var(--text-sec); }
+        .badge-purple { background: #ede9fe; color: var(--primary); }
+
+        body.dark .badge-warning { background: rgba(180, 83, 9, 0.2); color: #fcd34d; }
+        body.dark .badge-danger { background: rgba(185, 28, 28, 0.2); color: #fca5a5; }
+        body.dark .badge-success { background: rgba(21, 128, 61, 0.2); color: #86efac; }
+        body.dark .badge-neutral { background: #27272a; color: var(--text-sec); }
+        body.dark .badge-purple { background: rgba(124, 58, 237, 0.2); color: #c4b5fd; }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-input);
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--sidebar-active-bg);
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            gap: 32px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            padding: 12px 0;
+            color: var(--text-sec);
+            font-size: 14px;
+            font-weight: 400;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            font-weight: 600;
+            border-bottom-color: var(--primary);
+        }
+
+        /* Tab Content Area */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards Gerais */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        body.atual .card {
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }
+
+        /* ==========================================================================
+           6. ESTILOS ESPECÍFICOS DAS ABAS
+           ========================================================================== */
+
+        /* Aba Dados */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .info-group {
+            margin-bottom: 16px;
+        }
+
+        .info-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--text-sec);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        /* Aba Conversa */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+
+        .chat-message.bot {
+            align-self: flex-start;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .chat-bubble {
+            padding: 12px 16px;
+            border-radius: var(--radius-container);
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .bot .chat-bubble {
+            background: var(--chat-bot-bg);
+            color: var(--chat-bot-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .user .chat-bubble {
+            background: var(--chat-user-bg);
+            color: var(--chat-user-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-meta {
+            font-size: 12px;
+            color: var(--text-tert);
+            margin-top: 6px;
+        }
+
+        /* Aba Notas */
+        .notas-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 32px;
+        }
+
+        .nota-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nota-item:first-child {
+            padding-top: 0;
+        }
+
+        .nota-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .nota-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .nota-author {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .nota-date {
+            font-size: 12px;
+            color: var(--text-tert);
+        }
+
+        .nota-body {
+            font-size: 14px;
+            color: var(--text-sec);
+            line-height: 1.5;
+        }
+
+        .new-note-area {
+            position: sticky;
+            top: 0;
+        }
+
+        .new-note-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-input);
+            background: var(--bg-card);
+            color: var(--text-main);
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+
+        /* Aba Ações */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .action-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .action-card p {
+            color: var(--text-sec);
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        /* Aba Anexos */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-container);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-page);
+            margin-bottom: 32px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--sidebar-active-bg);
+        }
+
+        .upload-area p {
+            color: var(--text-sec);
+            margin-top: 8px;
+        }
+
+        .upload-icon {
+            font-size: 24px;
+            color: var(--text-tert);
+            margin-bottom: 12px;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-input);
+            background: var(--bg-card);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--sidebar-active-bg);
+            color: var(--primary);
+            border-radius: var(--radius-badge);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: var(--text-sec);
+        }
+
+        /* ==========================================================================
+           7. TOGGLES FLUTUANTES (DESENVOLVIMENTO/APROVAÇÃO)
+           ========================================================================== */
+        .dev-toggles {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dev-btn {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--sidebar-active-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .dev-btn:hover {
+            background: var(--border);
+        }
+
+    </style>
+</head>
+<body class="reforma">
+
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <img src="logo-dark.png" alt="Contato Solar" id="sidebarLogo">
+            </div>
+            <div class="sidebar-search">
+                <input type="text" placeholder="Buscar lead...">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item">Pool</a>
+                <a href="kanban-mockup.html" class="nav-item">Kanban</a>
+                <a href="#" class="nav-item active">Leads</a>
+                <a href="#" class="nav-item">Projetos</a>
+                <a href="#" class="nav-item">Métricas</a>
+                <a href="#" class="nav-item">Equipe</a>
+                <a href="#" class="nav-item">Logs</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="avatar-group">
+                    <div class="avatar">GS</div>
+                    <span style="font-size: 14px; font-weight: 600;">Gabriel</span>
+                </div>
+                <button class="btn-logout">Sair</button>
+            </div>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main class="main-area">
+
+            <!-- Sticky Header -->
+            <div class="lead-header">
+                <div class="lead-header-top">
+                    <div class="lead-title-group">
+                        <h1 class="page-title">Carlos Eduardo Batista</h1>
+                        <span class="badge badge-warning">Em contato</span>
+
+                        <!-- Badges decorativos que representam o anti-padrão do design antigo -->
+                        <span class="badge badge-purple hide-in-reforma">Novo Cliente</span>
+                        <span class="badge badge-neutral hide-in-reforma">Origem: Google</span>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-outline hide-in-reforma">Ligar Agora</button>
+                        <button class="btn btn-primary">Gerar Proposta</button>
+                    </div>
+                </div>
+
+                <!-- Tabs Nav -->
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-target="dados">Dados</button>
+                    <button class="tab-btn" data-target="conversa">Conversa</button>
+                    <button class="tab-btn" data-target="notas">Notas</button>
+                    <button class="tab-btn" data-target="acoes">Ações</button>
+                    <button class="tab-btn" data-target="anexos">Anexos</button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="tab-content">
+
+                <!-- ABA: DADOS -->
+                <div class="tab-pane active" id="pane-dados">
+                    <div class="grid-2">
+                        <!-- Card Pessoal -->
+                        <div class="card">
+                            <h2 class="card-title">Informações de Contato</h2>
+
+                            <div class="info-group">
+                                <div class="info-label">Nome Completo</div>
+                                <div class="info-value">Carlos Eduardo Batista</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Telefone Principal</div>
+                                <div class="info-value">(11) 98765-4321</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">E-mail</div>
+                                <div class="info-value">carlos.batista88@email.com.br</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">CPF / CNPJ</div>
+                                <div class="info-value">123.456.789-00</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Endereço de Instalação</div>
+                                <div class="info-value">Rua das Flores, 123, Jardim Primavera<br>São Paulo - SP, 01234-567</div>
+                            </div>
+                        </div>
+
+                        <!-- Card Energia -->
+                        <div class="card">
+                            <h2 class="card-title">Dados de Energia</h2>
+
+                            <div class="info-group">
+                                <div class="info-label">Concessionária</div>
+                                <div class="info-value">Enel SP</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Tipo de Ligação</div>
+                                <div class="info-value">Bifásica</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Consumo Médio (kWh/mês)</div>
+                                <div class="info-value">450 kWh</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Valor Médio da Conta</div>
+                                <div class="info-value">R$ 420,00</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Tipo de Telhado</div>
+                                <div class="info-value">Colonial (Cerâmica)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: CONVERSA -->
+                <div class="tab-pane" id="pane-conversa">
+                    <div class="chat-container">
+                        <div class="chat-message bot">
+                            <div class="chat-bubble">Olá! Somos da Contato Solar. Recebemos seu interesse em reduzir sua conta de luz. Como podemos te ajudar hoje?</div>
+                            <div class="chat-meta">Assistente Virtual • 10/05/2026 09:00</div>
+                        </div>
+
+                        <div class="chat-message bot">
+                            <div class="chat-bubble">Eu gostaria de entender como funciona a instalação. Minha conta tá vindo quase 500 reais.</div>
+                            <div class="chat-meta">Lead: Carlos Batista • 10/05/2026 09:15</div>
+                        </div>
+
+                        <div class="chat-message user">
+                            <div class="chat-bubble">Olá Carlos, tudo bem? Sou o Gabriel, especialista aqui da Contato Solar. Com uma conta de 500 reais, um sistema solar é um excelente investimento. Você já possui alguma conta de luz em mãos para eu fazer um pré-projeto?</div>
+                            <div class="chat-meta">Gabriel (Corretor) • 10/05/2026 09:40</div>
+                        </div>
+
+                        <div class="chat-message bot">
+                            <div class="chat-bubble">Tenho sim, vou anexar aqui. Mas me tira uma dúvida, precisa quebrar o telhado?</div>
+                            <div class="chat-meta">Lead: Carlos Batista • 10/05/2026 09:45</div>
+                        </div>
+
+                        <div class="chat-message user">
+                            <div class="chat-bubble">Não precisa quebrar nada! A estrutura é fixada sobre as telhas atuais com suportes específicos, garantindo total vedação contra chuvas. A instalação costuma durar de 2 a 3 dias no máximo.</div>
+                            <div class="chat-meta">Gabriel (Corretor) • 10/05/2026 09:50</div>
+                        </div>
+
+                        <div class="chat-message user">
+                            <div class="chat-bubble">Recebi a conta de energia aqui pelo sistema, obrigado. Vi que seu consumo médio é de 450 kWh. Vou preparar uma proposta sob medida e já te envio. Podemos agendar uma ligação rápida hoje às 15h para eu te apresentar os números?</div>
+                            <div class="chat-meta">Gabriel (Corretor) • 10/05/2026 09:55</div>
+                        </div>
+
+                        <div class="chat-message bot">
+                            <div class="chat-bubble">Pode ser às 16h? Estarei no trânsito antes disso.</div>
+                            <div class="chat-meta">Lead: Carlos Batista • 10/05/2026 10:05</div>
+                        </div>
+
+                        <div class="chat-message user">
+                            <div class="chat-bubble">Combinado! Às 16h te ligo. Até logo.</div>
+                            <div class="chat-meta">Gabriel (Corretor) • 10/05/2026 10:10</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: NOTAS -->
+                <div class="tab-pane" id="pane-notas">
+                    <div class="notas-layout">
+                        <!-- Lista de Notas -->
+                        <div class="card" style="margin-bottom: 0;">
+                            <div class="nota-item">
+                                <div class="nota-header">
+                                    <span class="nota-author">Gabriel Silva</span>
+                                    <span class="nota-date">10 Mai 2026, 16:30</span>
+                                </div>
+                                <div class="nota-body">Fiz a ligação de apresentação da proposta. Cliente achou o payback interessante (aproximadamente 3.5 anos), mas precisa confirmar com a esposa sobre a forma de pagamento. Retornar contato na quarta-feira.</div>
+                            </div>
+
+                            <div class="nota-item">
+                                <div class="nota-header">
+                                    <span class="nota-author">Gabriel Silva</span>
+                                    <span class="nota-date">10 Mai 2026, 09:55</span>
+                                </div>
+                                <div class="nota-body">Cliente enviou a conta de luz. Padrão bifásico, Enel SP. Telhado colonial. Aparentemente boa área de telhado, conferir no Google Earth.</div>
+                            </div>
+
+                            <div class="nota-item">
+                                <div class="nota-header">
+                                    <span class="nota-author">Sistema</span>
+                                    <span class="nota-date">09 Mai 2026, 20:15</span>
+                                </div>
+                                <div class="nota-body">Lead distribuído automaticamente para o corretor Gabriel Silva. Origem: Campanha Meta Ads (Conversão Direta).</div>
+                            </div>
+
+                            <div class="nota-item">
+                                <div class="nota-header">
+                                    <span class="nota-author">Sistema</span>
+                                    <span class="nota-date">09 Mai 2026, 20:14</span>
+                                </div>
+                                <div class="nota-body">Lead entrou no Pool.</div>
+                            </div>
+                        </div>
+
+                        <!-- Nova Nota -->
+                        <div class="new-note-area">
+                            <h2 class="card-title" style="margin-bottom: 16px;">Adicionar Nota Interna</h2>
+                            <textarea class="new-note-textarea" placeholder="Digite sua nota sobre este lead..."></textarea>
+                            <button class="btn btn-primary" style="width: 100%;">Salvar Nota</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: AÇÕES -->
+                <div class="tab-pane" id="pane-acoes">
+                    <div class="actions-grid">
+                        <div class="card action-card">
+                            <h2 class="card-title" style="margin-bottom: 8px;">Devolver ao Pool</h2>
+                            <p>O lead voltará para a lista geral e poderá ser capturado por outro corretor. Faça isso se o lead não for do seu interesse ou se não conseguir contato.</p>
+                            <button class="btn btn-outline" style="width: 100%; border-color: #b45309; color: #b45309;">Devolver Lead</button>
+                        </div>
+
+                        <div class="card action-card">
+                            <h2 class="card-title" style="margin-bottom: 8px; color: #b91c1c;">Arquivar Lead</h2>
+                            <p>O lead será marcado como perdido e ocultado do seu Kanban. Utilize caso o cliente não tenha mais interesse ou não tenha viabilidade técnica.</p>
+                            <button class="btn btn-outline" style="width: 100%; border-color: #b91c1c; color: #b91c1c;">Arquivar Permanentemente</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: ANEXOS -->
+                <div class="tab-pane" id="pane-anexos">
+                    <div class="upload-area">
+                        <div class="upload-icon">📁</div>
+                        <h3 style="font-size: 16px; color: var(--text-main);">Arraste arquivos aqui ou clique para selecionar</h3>
+                        <p>Suporta PDF, JPG e PNG até 10MB</p>
+                    </div>
+
+                    <h2 class="card-title">Arquivos Salvos</h2>
+
+                    <div class="file-list">
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon">PDF</div>
+                                <div>
+                                    <div class="file-name">Conta_Enel_Maio_2026.pdf</div>
+                                    <div class="file-meta">Enviado por Carlos Batista • 10/05/2026 • 245 KB</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">Download</button>
+                        </div>
+
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon" style="color: #0284c7; background: #e0f2fe;">PDF</div>
+                                <div>
+                                    <div class="file-name">Proposta_Comercial_CarlosB_v1.pdf</div>
+                                    <div class="file-meta">Gerado pelo sistema • 10/05/2026 • 1.2 MB</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">Download</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- TOGGLES DE DESENVOLVIMENTO -->
+    <div class="dev-toggles">
+        <button class="dev-btn" id="btn-design">Design: Reforma</button>
+        <button class="dev-btn" id="btn-theme">Tema: Light</button>
+    </div>
+
+    <script>
+        // Lógica de Tabs
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active de tudo
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+
+                // Adiciona active no clicado
+                btn.classList.add('active');
+                const targetId = `pane-${btn.dataset.target}`;
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+
+        // Lógica dos Toggles Dev
+        const btnDesign = document.getElementById('btn-design');
+        const btnTheme = document.getElementById('btn-theme');
+        const body = document.body;
+
+        btnDesign.addEventListener('click', () => {
+            if (body.classList.contains('reforma')) {
+                body.classList.remove('reforma');
+                body.classList.add('atual');
+                btnDesign.textContent = 'Design: Atual';
+            } else {
+                body.classList.remove('atual');
+                body.classList.add('reforma');
+                btnDesign.textContent = 'Design: Reforma';
+            }
+        });
+
+        btnTheme.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            if (body.classList.contains('dark')) {
+                btnTheme.textContent = 'Tema: Dark';
+            } else {
+                btnTheme.textContent = 'Tema: Light';
+            }
+        });
+    </script>
+</body>
+</html>

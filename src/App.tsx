@@ -3,11 +3,14 @@ import { Navigate, Route, Routes } from "react-router-dom"
 
 import Layout from "@/components/Layout"
 import { useAuth } from "@/contexts/useAuth"
-import { canManageTeam, canViewCompetition, canViewDashboard, canViewProjects } from "@/lib/permissions"
+import { canManageCalculadoraConfig, canManageTeam, canViewCalculadora, canViewCompetition, canViewDashboard, canViewProjects } from "@/lib/permissions"
 import Login from "@/pages/Login"
 
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"))
 const ArchivedLeadsPage = lazy(() => import("@/pages/ArchivedLeadsPage"))
+const CalculadoraPage = lazy(() => import("@/pages/CalculadoraPage"))
+const CalculadoraConfigPage = lazy(() => import("@/pages/CalculadoraConfigPage"))
+const CalculadoraHistoricoPage = lazy(() => import("@/pages/CalculadoraHistoricoPage"))
 const CompetitionPage = lazy(() => import("@/pages/CompetitionPage"))
 const DashboardGeneralPage = lazy(() => import("@/pages/DashboardGeneralPage"))
 const LeadDetailPage = lazy(() => import("@/pages/LeadDetailPage"))
@@ -183,6 +186,47 @@ export default function App() {
           <PrivateRoute>
             <Suspense fallback={<RouteFallback />}>
               {canManageTeam(role) ? <TeamPage /> : <Navigate to={homePath} replace />}
+            </Suspense>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/calculadora"
+        element={
+          <PrivateRoute>
+            <Suspense fallback={<RouteFallback />}>
+              {canViewCalculadora(role) ? <CalculadoraPage /> : <Navigate to={homePath} replace />}
+            </Suspense>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/calculadora/historico"
+        element={
+          <PrivateRoute>
+            <Suspense fallback={<RouteFallback />}>
+              {canViewCalculadora(role) ? (
+                <CalculadoraHistoricoPage />
+              ) : (
+                <Navigate to={homePath} replace />
+              )}
+            </Suspense>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/calculadora-config"
+        element={
+          <PrivateRoute>
+            <Suspense fallback={<RouteFallback />}>
+              {canManageCalculadoraConfig(role) ? (
+                <CalculadoraConfigPage />
+              ) : (
+                <Navigate to={homePath} replace />
+              )}
             </Suspense>
           </PrivateRoute>
         }

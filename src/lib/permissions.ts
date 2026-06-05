@@ -59,3 +59,11 @@ export function canViewCompetitionValue(role: UserRole | null | undefined) {
 export function canManageTeam(role: UserRole | null | undefined) {
   return hasRoleAtLeast(role, "admin")
 }
+
+export function canViewCalculadora(role: UserRole | null | undefined) {
+  return isAdminRole(role)
+}
+
+export function canManageCalculadoraConfig(role: UserRole | null | undefined) {
+  return isAdminRole(role)
+}

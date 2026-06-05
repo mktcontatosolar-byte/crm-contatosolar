@@ -1,18 +1,17 @@
-﻿import { useState } from "react"
+﻿ 
+import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   Archive,
-  ChevronRight,
+  Calculator,
   Crown,
   FolderKanban,
   History,
   Kanban,
   LayoutDashboard,
   LogOut,
-  Medal,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
+  SlidersHorizontal,
   Users,
 } from "lucide-react"
 
@@ -22,12 +21,10 @@ import { Button } from "@/components/ui/button"
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
-import { canViewCompetition, canViewDashboard, canViewProjects, ROLE_LABEL } from "@/lib/permissions"
+import { canManageCalculadoraConfig, canViewCalculadora, canViewDashboard, canViewProjects } from "@/lib/permissions"
 
 type SidebarMenuItem = {
   label: string
@@ -43,8 +40,6 @@ function SidebarNav({
   onNavigate,
   onSignOut,
   profileName,
-  profileRole,
-  isAdmin,
 }: {
   mobile?: boolean
   collapsed?: boolean
@@ -53,18 +48,16 @@ function SidebarNav({
   onNavigate: (path: string) => void
   onSignOut: () => void
   profileName: string
-  profileRole: string
-  isAdmin: boolean
 }) {
   return (
     <>
       <nav
         aria-label="Navegação principal"
-        className={`flex-1 overflow-x-auto p-4 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden ${
-          mobile ? "overflow-visible p-0" : ""
+        className={`flex-1 overflow-x-auto lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden ${
+          mobile ? "overflow-visible p-0" : "p-3"
         }`}
       >
-        <div className={`flex gap-2 pb-1 lg:flex-col lg:pb-4 ${mobile ? "flex-col pb-0" : ""}`}>
+        <div className={`flex flex-col gap-1 ${mobile ? "flex-col" : ""}`}>
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = currentPath === item.path
@@ -76,17 +69,21 @@ function SidebarNav({
                 onClick={() => onNavigate(item.path)}
                 aria-current={isActive ? "page" : undefined}
                 title={collapsed && !mobile ? item.label : undefined}
-                className={`flex min-h-12 shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition-all focus-visible:border-sidebar-ring focus-visible:ring-3 focus-visible:ring-sidebar-ring/30 lg:w-full ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors lg:w-full ${
                   isActive
-                    ? "border-[color:color-mix(in_oklab,var(--sidebar-primary)_22%,transparent)] bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_12px_28px_color-mix(in_oklab,var(--sidebar-primary)_18%,transparent)]"
-                    : "border-transparent bg-transparent text-sidebar-foreground/80 hover:border-sidebar-border/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                } ${collapsed && !mobile ? "justify-center px-0" : ""}`}
+                    ? "bg-muted text-text-main font-semibold"
+                    : "text-text-sec hover:bg-muted hover:text-text-main"
+                } ${
+                  collapsed && !mobile
+                    ? "h-10 w-10 justify-center"
+                    : "justify-start"
+                }`}
               >
-                <Icon className="h-4 w-4" />
-                {!collapsed || mobile ? <span className="font-medium">{item.label}</span> : null}
-                {!collapsed || mobile ? (
-                  <ChevronRight className="ml-auto hidden h-4 w-4 opacity-60 lg:block" />
-                ) : null}
+                <Icon
+                  className="h-[18px] w-[18px] shrink-0"
+                  strokeWidth={1.8}
+                />
+                {!collapsed || mobile ? <span>{item.label}</span> : null}
               </button>
             )
           })}
@@ -94,18 +91,16 @@ function SidebarNav({
       </nav>
 
       <div
-        className={`${mobile ? "mt-5 border-t border-sidebar-border/70 pt-5" : "border-t border-sidebar-border/70 p-4 sm:p-5 lg:mt-auto"}`}
+        className={`${mobile ? "mt-auto border-t border-border p-2" : "mt-auto border-t border-border p-3"}`}
       >
         {!collapsed || mobile ? (
-          <div className="mb-4 rounded-[1.5rem] border border-sidebar-border/70 bg-sidebar-accent/88 p-4">
-            <p className="truncate text-sm font-medium">{profileName}</p>
-
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-xs capitalize text-sidebar-foreground/65">{profileRole}</p>
-              <span className="rounded-full border border-[color:color-mix(in_oklab,var(--sidebar-ring)_18%,transparent)] bg-sidebar px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-sidebar-foreground/72">
-                {ROLE_LABEL[profileRole as keyof typeof ROLE_LABEL] || (isAdmin ? "Admin" : "Vendedor")}
-              </span>
+          <div className="flex items-center gap-3 p-1">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+              {profileName.charAt(0)}
             </div>
+            <p className="truncate text-sm font-semibold text-text-main">
+              {profileName}
+            </p>
           </div>
         ) : null}
 
@@ -113,20 +108,17 @@ function SidebarNav({
           variant="ghost"
           size="sm"
           title={collapsed && !mobile ? "Sair" : undefined}
-          className={`h-12 rounded-[1.25rem] text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
-            collapsed && !mobile ? "w-full justify-center px-0" : "w-full justify-start"
+          className={`mt-1 h-auto w-full justify-start rounded-lg p-2.5 text-sm font-medium text-text-sec hover:bg-muted hover:text-text-main ${
+            collapsed && !mobile ? "justify-center" : ""
           }`}
           onClick={onSignOut}
         >
-          <LogOut className={`h-4 w-4 ${collapsed && !mobile ? "" : "mr-2"}`} />
+          <LogOut
+            className={`h-[18px] w-[18px] ${collapsed && !mobile ? "" : "mr-2"}`}
+            strokeWidth={1.8}
+          />
           {!collapsed || mobile ? "Sair" : null}
         </Button>
-
-        {!collapsed || mobile ? (
-          <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/45">
-            Desenvolvido por Gabriel B.
-          </p>
-        ) : null}
       </div>
     </>
   )
@@ -136,11 +128,11 @@ export default function Sidebar() {
   const { profile, signOut, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const isDashboardGeneralRoute = location.pathname === "/dashboard-geral"
-  const [dashboardSidebarExpanded, setDashboardSidebarExpanded] = useState(false)
-  const collapsed = isDashboardGeneralRoute ? !dashboardSidebarExpanded : false
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const menuItems = [
+  const collapsed = false
+
+  const menuItems: SidebarMenuItem[] = [
     ...(isAdmin
       ? [
           {
@@ -164,21 +156,21 @@ export default function Sidebar() {
           },
         ]
       : []),
-    ...(canViewCompetition(profile?.role)
-      ? [
-          {
-            label: "Competição",
-            icon: Medal,
-            path: "/competicao",
-          },
-        ]
-      : []),
     ...(canViewDashboard(profile?.role)
       ? [
           {
             label: "Dashboard Geral",
             icon: Crown,
             path: "/dashboard-geral",
+          },
+        ]
+      : []),
+    ...(canViewCalculadora(profile?.role)
+      ? [
+          {
+            label: "Calculadora",
+            icon: Calculator,
+            path: "/calculadora",
           },
         ]
       : []),
@@ -206,6 +198,15 @@ export default function Sidebar() {
           },
         ]
       : []),
+    ...(canManageCalculadoraConfig(profile?.role)
+      ? [
+          {
+            label: "Config Calculadora",
+            icon: SlidersHorizontal,
+            path: "/calculadora-config",
+          },
+        ]
+      : []),
   ]
 
   async function handleSignOut() {
@@ -214,123 +215,116 @@ export default function Sidebar() {
   }
 
   function handleNavigate(path: string) {
-    if (path === "/dashboard-geral") {
-      setDashboardSidebarExpanded(false)
-    }
-
     navigate(path)
+    setIsMobileMenuOpen(false)
   }
 
+  const profileName = profile?.nome || profile?.email || "Usuário"
+
   return (
-    <aside
-      className={`sticky top-0 z-30 border-b border-sidebar-border/70 bg-sidebar/92 text-sidebar-foreground backdrop-blur supports-[backdrop-filter]:bg-sidebar/86 lg:h-screen lg:border-r lg:border-b-0 lg:shrink-0 ${
-        collapsed ? "lg:w-24" : "lg:w-80"
-      }`}
-    >
-      <div className="flex h-full flex-col lg:min-h-0">
-        <div className="border-b border-sidebar-border/70 p-5 sm:p-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-center">
-                <div
-                  className={`flex shrink-0 items-center overflow-hidden ${collapsed ? "h-12 w-12 justify-center" : "h-16 w-36 justify-start sm:h-20 sm:w-44"}`}
-                >
-                  <img
-                    src="/logo-dark.png"
-                    alt="Logo Contato Solar"
-                    className={`h-full object-contain dark:hidden ${collapsed ? "w-12 object-center" : "w-full object-left"}`}
-                  />
-                  <img
-                    src="/logo-light.png"
-                    alt="Logo Contato Solar"
-                    className={`hidden h-full object-contain dark:block ${collapsed ? "w-12 object-center" : "w-full object-left"}`}
-                  />
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <div className="hidden lg:block">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    className="rounded-full border-sidebar-border/70 bg-sidebar-accent text-sidebar-foreground"
-                    onClick={() => setDashboardSidebarExpanded((current) => !current)}
-                    aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-                    title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-                  >
-                    {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                  </Button>
-                </div>
-
-                <ThemeToggle />
-
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
-                      className="rounded-full border-sidebar-border/70 bg-sidebar-accent text-sidebar-foreground lg:hidden"
-                      aria-label="Abrir menu"
-                    >
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent
-                    side="right"
-                    className="border-sidebar-border/70 bg-sidebar text-sidebar-foreground"
-                  >
-                    <SheetHeader className="pr-10">
-                      <SheetTitle className="text-sidebar-foreground">Menu</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-4 flex h-full flex-col">
-                      <div className="mb-4">
-                        <div className="rounded-[1.25rem] border border-sidebar-border/70 bg-sidebar-accent/80 p-2">
-                          <GlobalLeadSearch variant="sidebar" />
-                        </div>
-                      </div>
-                      <SidebarNav
-                        mobile
-                        menuItems={menuItems}
-                        currentPath={location.pathname}
-                        onNavigate={handleNavigate}
-                        onSignOut={handleSignOut}
-                        profileName={profile?.nome || profile?.email || "Usuário"}
-                        profileRole={profile?.role || "sem perfil"}
-                        isAdmin={isAdmin}
-                      />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            </div>
-
-            {!collapsed ? (
-              <div className="hidden lg:block">
-                <div className="rounded-[1.5rem] border border-sidebar-border/70 bg-sidebar-accent/65 p-1.5">
-                  <GlobalLeadSearch variant="sidebar-full" />
-                </div>
-              </div>
-            ) : null}
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`sticky top-0 z-30 hidden border-r border-border bg-sidebar text-text-main lg:flex lg:h-screen lg:flex-col lg:shrink-0 ${
+          collapsed ? "lg:w-[78px]" : "lg:w-[220px]"
+        }`}
+      >
+        <div className="flex h-[72px] items-center justify-center border-b border-border px-4">
+          <div
+            className={`flex items-center gap-3 overflow-hidden ${
+              collapsed ? "justify-center" : "justify-start"
+            }`}
+          >
+            <img
+              src="/logo-dark.png"
+              alt="Logo Contato Solar"
+              className={`object-contain dark:hidden ${collapsed ? "h-8" : "h-9"}`}
+            />
+            <img
+              src="/logo-light.png"
+              alt="Logo Contato Solar"
+              className={`hidden object-contain dark:block ${collapsed ? "h-8" : "h-9"}`}
+            />
           </div>
         </div>
 
-        <div className="hidden lg:flex lg:h-full lg:min-h-0 lg:flex-col">
-          <SidebarNav
-            collapsed={collapsed}
-            menuItems={menuItems}
-            currentPath={location.pathname}
-            onNavigate={handleNavigate}
-            onSignOut={handleSignOut}
-            profileName={profile?.nome || profile?.email || "Usuário"}
-            profileRole={profile?.role || "sem perfil"}
-            isAdmin={isAdmin}
+        {!collapsed ? (
+          <div className="p-3">
+            <GlobalLeadSearch variant="sidebar-full" />
+          </div>
+        ) : null}
+
+        <SidebarNav
+          collapsed={collapsed}
+          menuItems={menuItems}
+          currentPath={location.pathname}
+          onNavigate={handleNavigate}
+          onSignOut={handleSignOut}
+          profileName={profileName}
+        />
+      </aside>
+
+      {/* Mobile Header */}
+      <header className="sticky top-0 z-30 flex h-[64px] items-center justify-between border-b border-border bg-sidebar/80 px-4 text-text-main backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-lg"
+                aria-label="Abrir menu"
+              >
+                <Menu className="h-[20px] w-[20px]" strokeWidth={1.8} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-[240px] border-border bg-sidebar p-0 text-text-main"
+            >
+              <div className="flex h-[72px] items-center justify-center border-b border-border">
+                <img
+                  src="/logo-dark.png"
+                  alt="Logo Contato Solar"
+                  className="h-9 dark:hidden"
+                />
+                <img
+                  src="/logo-light.png"
+                  alt="Logo Contato Solar"
+                  className="hidden h-9 dark:block"
+                />
+              </div>
+              <div className="p-2">
+                <GlobalLeadSearch variant="sidebar" />
+              </div>
+              <SidebarNav
+                mobile
+                menuItems={menuItems}
+                currentPath={location.pathname}
+                onNavigate={handleNavigate}
+                onSignOut={handleSignOut}
+                profileName={profileName}
+              />
+            </SheetContent>
+          </Sheet>
+          <img
+            src="/logo-dark.png"
+            alt="Logo Contato Solar"
+            className="h-7 object-contain dark:hidden"
+          />
+          <img
+            src="/logo-light.png"
+            alt="Logo Contato Solar"
+            className="hidden h-7 object-contain dark:block"
           />
         </div>
-      </div>
-    </aside>
+
+        <div className="flex items-center gap-2">
+          <GlobalLeadSearch variant="sidebar" />
+          <ThemeToggle />
+        </div>
+      </header>
+    </>
   )
 }
-
-

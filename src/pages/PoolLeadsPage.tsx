@@ -589,7 +589,7 @@ export default function PoolLeadsPage() {
       {error ? <StatePanel tone="error" centered={false}>{error}</StatePanel> : null}
 
       {loading ? (
-        <div className="grid gap-4 xl:grid-cols-[0.4fr_0.6fr]">
+        <div className="grid gap-4 lg:grid-cols-[0.4fr_0.6fr]">
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <PoolLeadCardSkeleton key={index} />
@@ -606,7 +606,7 @@ export default function PoolLeadsPage() {
       ) : null}
 
       {!loading && leads.length > 0 ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
           <div className="space-y-4">
             {leads.map((lead) => {
               const isSelected = selectedLead?.id === lead.id

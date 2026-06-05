@@ -755,8 +755,7 @@ export default function TeamPage() {
         ))}
       </MetricGrid>
 
-      <section>
-          <SectionCard
+      <SectionCard
             title={
               <span className="flex items-center gap-2 text-xl">
                 <UserPlus className="h-5 w-5 text-accent" />
@@ -871,17 +870,19 @@ export default function TeamPage() {
                 </p>
               ) : null}
 
-              <Button
-                type="submit"
-                className="h-11 w-full rounded-full"
-                disabled={createUserMutation.isPending}
-              >
-                {createUserMutation.isPending ? "Criando acesso..." : "Criar acesso"}
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  className="rounded-full px-8"
+                  disabled={createUserMutation.isPending}
+                >
+                  {createUserMutation.isPending ? "Criando acesso..." : "Criar acesso"}
+                </Button>
+              </div>
             </form>
           </SectionCard>
 
-      <section className="grid gap-4 xl:grid-cols-12">
+      <div className="grid gap-6 xl:grid-cols-12">
         <Card className="rounded-3xl border border-border/60 bg-card/92 shadow-sm xl:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -901,7 +902,7 @@ export default function TeamPage() {
               ? [...summary.owners, ...summary.admins].map((member) => (
                   <div
                     key={member.id}
-                    className="min-h-[220px] rounded-3xl border border-border/60 bg-background/60 p-5"
+                    className="rounded-3xl border border-border/60 bg-background/60 p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
@@ -1011,9 +1012,9 @@ export default function TeamPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-3 gap-3">
+                      <div className="mt-4 grid grid-cols-3 gap-2">
                         <div className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/80 p-3 text-center">
-                          <p className="whitespace-nowrap text-xs tracking-[0.16em] text-muted-foreground">Leads em atendimento</p>
+                          <p className="text-xs leading-tight tracking-[0.16em] text-muted-foreground">Leads ativos</p>
                           <p className="mt-2 whitespace-nowrap text-sm font-medium text-foreground">{assignedCount}</p>
                         </div>
                         <div className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/80 p-3 text-center">
@@ -1173,8 +1174,7 @@ export default function TeamPage() {
             ) : null}
           </CardContent>
         </Card>
-      </section>
-      </section>
+      </div>
 
       <Dialog open={Boolean(brokerForRedistribution)} onOpenChange={(open) => !open && setBrokerForRedistribution(null)}>
         <DialogContent className="max-w-3xl rounded-[2rem]">

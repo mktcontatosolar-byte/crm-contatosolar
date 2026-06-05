@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contato Solar — Kanban Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  height: 100vh;
+  overflow: hidden;
+  transition: background 0.3s ease;
+}
+
+/* ── Floating Toggles (bottom-right) ── */
+.floating-toggles {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.toggle-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.toggle-btn.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 220px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  z-index: 90;
+  transition: all 0.3s ease;
+}
+
+/* Logo */
+.sidebar-logo-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 12px 14px;
+  flex-shrink: 0;
+}
+.sidebar-logo-wrap img {
+  height: 42px;
+  max-width: 80%;
+  object-fit: contain;
+}
+
+/* Nav items */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sidebar-item:hover { background: #f3f4f6; }
+.sidebar-item.active {
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+}
+.sidebar-item svg {
+  width: 18px; height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* Search inside sidebar */
+.sidebar-search-wrap {
+  position: relative;
+  padding: 12px 12px 0;
+  flex-shrink: 0;
+}
+.sidebar-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #111827;
+  background: #f3f4f6;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.sidebar-search:focus { border-color: #7c3aed; background: #fff; }
+.sidebar-search-wrap::before {
+  content: '';
+  position: absolute;
+  left: 22px; top: 50%;
+  transform: translateY(-50%);
+  width: 13px; height: 13px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat center;
+  pointer-events: none;
+}
+
+/* Spacer */
+.sidebar-spacer { flex: 1; }
+
+/* User section */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+.sidebar-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #6b7280;
+  flex-shrink: 0;
+}
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.15s ease;
+}
+.sidebar-logout:hover { background: #f3f4f6; color: #374151; }
+.sidebar-logout svg {
+  width: 15px; height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Main ── */
+.main {
+  margin-left: 220px;
+  height: 100vh;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ── Filters ── */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.filter-input, .filter-select {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+  outline: none;
+}
+.filter-input { width: 200px; }
+.filter-select { min-width: 140px; cursor: pointer; }
+.filter-input:focus, .filter-select:focus { border-color: #7c3aed; }
+.filter-btn-primary {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: #7c3aed;
+  color: #fff;
+  transition: background 0.15s;
+}
+.filter-btn-primary:hover { background: #6d28d9; }
+
+/* ── Kanban Board ── */
+.kanban-board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+}
+.kanban-column {
+  min-width: 280px;
+  max-width: 300px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Column header is flex-shrink:0 — always visible, never scrolls */
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  flex-shrink: 0;
+}
+.column-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.column-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.column-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 1px 8px;
+  border-radius: 6px;
+}
+
+/* Cards area scrolls independently */
+.column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: #f9fafb;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+.column-cards::-webkit-scrollbar { width: 4px; }
+.column-cards::-webkit-scrollbar-track { background: transparent; }
+.column-cards::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+.column-cards::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── Lead Card ── */
+.lead-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  flex-shrink: 0;
+}
+.lead-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+.lead-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+.lead-phone {
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+.lead-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lead-source {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+}
+.lead-time {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.lead-time .dot-alert {
+  width: 6px; height: 6px;
+  background: #ef4444;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Column title colors ── */
+.col-novos .column-title { color: #2563eb; }
+.col-contato .column-title { color: #0891b2; }
+.col-qualificados .column-title { color: #7c3aed; }
+.col-proposta .column-title { color: #d97706; }
+.col-fechado .column-title { color: #059669; }
+
+/* ── Footer ── */
+.mockup-footer {
+  padding: 6px 0;
+  font-size: 11px;
+  color: #b0b5bf;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Toggle divider ── */
+.toggle-divider {
+  width: 1px;
+  height: 16px;
+  background: #d1d5db;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════
+   DARK MODE — tema escuro limpo (Reforma Dark)
+   ════════════════════════════════════════════════ */
+
+body.theme-dark {
+  background: #0e0916;
+  color: #ede8ff;
+}
+body.theme-dark .floating-toggles {
+  background: #1c1230;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+body.theme-dark .toggle-divider { background: rgba(124,58,237,0.35); }
+body.theme-dark .toggle-btn { color: #9b8fc0; }
+body.theme-dark .toggle-btn.active {
+  background: rgba(124,58,237,0.28);
+  color: #ede8ff;
+  box-shadow: none;
+}
+
+body.theme-dark .sidebar {
+  background: #160d27;
+  border-right-color: rgba(124,58,237,0.18);
+}
+body.theme-dark .sidebar-item { color: #9b8fc0; }
+body.theme-dark .sidebar-item:hover { background: rgba(124,58,237,0.1); color: #ede8ff; }
+body.theme-dark .sidebar-item.active {
+  background: rgba(124,58,237,0.18);
+  color: #ede8ff;
+}
+body.theme-dark .sidebar-search {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(124,58,237,0.22);
+  color: #ede8ff;
+}
+body.theme-dark .sidebar-search:focus {
+  border-color: #f59e0b;
+  background: rgba(255,255,255,0.07);
+}
+body.theme-dark .sidebar-user { border-top-color: rgba(124,58,237,0.18); }
+body.theme-dark .sidebar-avatar {
+  background: linear-gradient(135deg, #7c3aed, #f59e0b);
+  color: #fff;
+}
+body.theme-dark .sidebar-logout { color: #9b8fc0; }
+body.theme-dark .sidebar-logout:hover { background: rgba(124,58,237,0.1); color: #ede8ff; }
+
+body.theme-dark .page-title { color: #ede8ff; }
+body.theme-dark .filter-input,
+body.theme-dark .filter-select {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(124,58,237,0.22);
+  color: #ede8ff;
+}
+body.theme-dark .filter-input:focus,
+body.theme-dark .filter-select:focus { border-color: #f59e0b; }
+body.theme-dark .filter-btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+}
+
+body.theme-dark .column-count {
+  background: rgba(124,58,237,0.15);
+  color: #c4b5fd;
+}
+body.theme-dark .column-cards {
+  background: rgba(124,58,237,0.06);
+  scrollbar-color: rgba(124,58,237,0.3) transparent;
+}
+body.theme-dark .column-cards::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); }
+
+body.theme-dark .lead-card {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(124,58,237,0.16);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+body.theme-dark .lead-card:hover {
+  border-color: rgba(245,158,11,0.35);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.15);
+}
+body.theme-dark .lead-name { color: #ede8ff; }
+body.theme-dark .lead-phone { color: #9b8fc0; }
+body.theme-dark .lead-source {
+  background: rgba(124,58,237,0.15);
+  color: #c4b5fd;
+}
+body.theme-dark .lead-time { color: #6b5f8a; }
+
+body.theme-dark .col-novos .column-title { color: #818cf8; }
+body.theme-dark .col-contato .column-title { color: #38bdf8; }
+body.theme-dark .col-qualificados .column-title { color: #c4b5fd; }
+body.theme-dark .col-proposta .column-title { color: #fbbf24; }
+body.theme-dark .col-fechado .column-title { color: #34d399; }
+
+body.theme-dark .mockup-footer { color: #4a3d6a; }
+
+/* ════════════════════════════════════════════════
+   VERSAO "ATUAL" — estilos datados (toggle)
+   ════════════════════════════════════════════════ */
+
+body.modo-atual {
+  background: linear-gradient(135deg, #1a1025 0%, #0f0a1a 50%, #1a1025 100%);
+  color: #e2e0e7;
+}
+
+body.modo-atual .floating-toggles {
+  background: rgba(124,58,237,0.15);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+body.modo-atual .toggle-btn { color: #a5a0b5; }
+body.modo-atual .toggle-btn.active {
+  background: rgba(124,58,237,0.3);
+  color: #e2e0e7;
+  box-shadow: none;
+}
+
+body.modo-atual .sidebar {
+  background: rgba(28, 20, 44, 0.95);
+  border-right: 1px solid rgba(124, 58, 237, 0.12);
+  backdrop-filter: blur(12px);
+}
+body.modo-atual .sidebar-item { color: #b0a8c0; }
+body.modo-atual .sidebar-item:hover { background: rgba(124, 58, 237, 0.1); }
+body.modo-atual .sidebar-item.active {
+  background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(245,158,11,0.1));
+  color: #c4b5fd;
+  font-weight: 600;
+}
+body.modo-atual .sidebar-search {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(124,58,237,0.2);
+  color: #e2e0e7;
+}
+body.modo-atual .sidebar-user { border-top-color: rgba(124,58,237,0.12); }
+body.modo-atual .sidebar-avatar {
+  background: linear-gradient(135deg, #7c3aed, #f59e0b);
+  color: #fff;
+}
+body.modo-atual .sidebar-logout { color: #b0a8c0; }
+body.modo-atual .sidebar-logout:hover { background: rgba(124,58,237,0.1); color: #c4b5fd; }
+
+body.modo-atual .page-title { color: #e2e0e7; }
+body.modo-atual .filter-input,
+body.modo-atual .filter-select {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(124,58,237,0.2);
+  color: #e2e0e7;
+}
+body.modo-atual .filter-btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+}
+
+body.modo-atual .column-cards {
+  background: rgba(124, 58, 237, 0.04);
+  border-radius: 20px;
+  scrollbar-color: rgba(124,58,237,0.3) transparent;
+}
+body.modo-atual .column-cards::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); }
+
+/* Column header in atual mode */
+body.modo-atual .column-header { padding: 12px 8px; }
+body.modo-atual .column-title { font-size: 14px; text-transform: none; letter-spacing: 0; }
+body.modo-atual .col-novos .column-title { color: #60a5fa; }
+body.modo-atual .col-contato .column-title { color: #22d3ee; }
+body.modo-atual .col-qualificados .column-title { color: #c4b5fd; }
+body.modo-atual .col-proposta .column-title { color: #fbbf24; }
+body.modo-atual .col-fechado .column-title { color: #34d399; }
+body.modo-atual .column-count { background: rgba(124,58,237,0.15); color: #c4b5fd; }
+
+/* Colored dot in atual mode */
+body.modo-atual .col-dot {
+  display: inline-block !important;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+body.modo-atual .col-novos .col-dot { background: #60a5fa; }
+body.modo-atual .col-contato .col-dot { background: #22d3ee; }
+body.modo-atual .col-qualificados .col-dot { background: #c4b5fd; }
+body.modo-atual .col-proposta .col-dot { background: #fbbf24; }
+body.modo-atual .col-fechado .col-dot { background: #34d399; }
+
+/* Card in atual mode */
+body.modo-atual .lead-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 24px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.08), 0 0 0 1px rgba(124, 58, 237, 0.06);
+}
+body.modo-atual .lead-card:hover {
+  border-color: rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.15);
+}
+body.modo-atual .lead-name { color: #f3f0ff; }
+body.modo-atual .lead-phone { color: #a5a0b5; }
+body.modo-atual .lead-source { background: rgba(124, 58, 237, 0.15); color: #c4b5fd; border-radius: 20px; }
+body.modo-atual .lead-time { color: #8b839e; }
+body.modo-atual .lead-time .dot-alert { background: #f87171; }
+
+body.modo-atual .card-extras { display: flex !important; }
+body.modo-atual .card-grip { display: block !important; }
+body.modo-atual .card-menu-btn { display: flex !important; }
+
+body.modo-atual .mockup-footer { color: #6b6280; }
+
+/* ── Card extras (hidden in reforma, shown in atual) ── */
+.card-extras {
+  display: none;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+.card-extras .badge-extra {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.badge-tag-blue  { background: rgba(59,130,246,0.15);  color: #93c5fd; }
+.badge-tag-amber { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+.badge-tag-green { background: rgba(16,185,129,0.15);  color: #6ee7b7; }
+.badge-tag-pink  { background: rgba(236,72,153,0.15);  color: #f9a8d4; }
+.badge-manual    { background: rgba(107,114,128,0.2);  color: #9ca3af; }
+.badge-notes { font-size: 10px; color: #8b839e; display: flex; align-items: center; gap: 3px; }
+
+.card-grip { display: none; width: 100%; justify-content: center; margin-bottom: 6px; }
+.card-grip .grip-dots { display: flex; gap: 2px; }
+.card-grip .grip-dots span { width: 4px; height: 4px; background: rgba(124,58,237,0.3); border-radius: 50%; }
+
+.card-menu-btn {
+  display: flex;
+  align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: none; cursor: pointer;
+  color: #9ca3af; font-size: 14px; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.card-menu-btn:hover { background: #f3f4f6; color: #374151; }
+body.theme-dark .card-menu-btn { color: #6b5f8a; }
+body.theme-dark .card-menu-btn:hover { background: rgba(124,58,237,0.15); color: #c4b5fd; }
+.card-top-row { display: flex; align-items: flex-start; justify-content: space-between; }
+.card-top-row .lead-name { flex: 1; }
+
+/* Reform: hide col-dot */
+.col-dot { display: none; }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+}
+
+/* Smooth transitions */
+.main, .sidebar, .lead-card, .column-cards, .kanban-column {
+  transition: all 0.35s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- Floating Toggles — fixed bottom-right -->
+<div class="floating-toggles">
+  <button class="toggle-btn" id="btn-atual" onclick="setMode('atual')">Atual</button>
+  <button class="toggle-btn active" id="btn-reforma" onclick="setMode('reforma')">Reforma</button>
+  <div class="toggle-divider"></div>
+  <button class="toggle-btn active" id="btn-light" onclick="setTheme('light')">Claro</button>
+  <button class="toggle-btn" id="btn-dark" onclick="setTheme('dark')">Escuro</button>
+</div>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <!-- 1. Logo -->
+  <div class="sidebar-logo-wrap">
+    <img src="logo-dark.png" alt="Contato Solar" />
+  </div>
+
+  <!-- 2. Nav -->
+  <div class="sidebar-nav">
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Pool
+    </div>
+    <div class="sidebar-item active">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+      Kanban
+    </div>
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Leads
+    </div>
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Projetos
+    </div>
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      Métricas
+    </div>
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Equipe
+    </div>
+    <div class="sidebar-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Logs
+    </div>
+  </div>
+
+  <!-- 3. Search -->
+  <div class="sidebar-search-wrap">
+    <input type="text" class="sidebar-search" placeholder="Buscar lead...">
+  </div>
+
+  <!-- 4. Spacer -->
+  <div class="sidebar-spacer"></div>
+
+  <!-- 5. User section -->
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">GS</div>
+    <button class="sidebar-logout">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <h1 class="page-title">Meu Kanban</h1>
+  </div>
+
+  <div class="filters-bar">
+    <input class="filter-input" type="text" placeholder="Filtrar por nome...">
+    <select class="filter-select">
+      <option>Todas origens</option>
+      <option>Instagram</option>
+      <option>Facebook</option>
+      <option>Manual</option>
+    </select>
+    <select class="filter-select">
+      <option>Todos responsáveis</option>
+      <option>Gabriel</option>
+      <option>Maria</option>
+    </select>
+    <button class="filter-btn-primary">Novo lead</button>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban-board">
+
+    <!-- Col 1: Novos (15 cards) -->
+    <div class="kanban-column col-novos">
+      <div class="column-header">
+        <div class="column-header-left">
+          <span class="col-dot"></span>
+          <span class="column-title">Novos</span>
+          <span class="column-count">15</span>
+        </div>
+      </div>
+      <div class="column-cards">
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Maria Silva</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 99876-5432</div><div class="card-extras"><span class="badge-extra badge-tag-blue">Lançamento A</span><span class="badge-extra badge-tag-amber">Prioridade</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 2h</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">João Pereira</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 98765-4321</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-extra badge-tag-green">Retorno</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 5h</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Ana Costa</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 91234-5678</div><div class="card-extras"><span class="badge-extra badge-tag-pink">VIP</span><span class="badge-extra badge-tag-blue">Apt 3Q</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time">há 1 dia</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Lucas Almeida</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 99887-6543</div><div class="card-extras"><span class="badge-extra badge-tag-blue">Interesse</span><span class="badge-extra badge-tag-green">Novo</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 1 dia</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Patrícia Ribeiro</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 98765-1122</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 1 dia</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Rafael Cardoso</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 97766-3344</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Quente</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time">há 2 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Bianca Nogueira</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 96655-2233</div><div class="card-extras"><span class="badge-extra badge-tag-pink">Premium</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 2 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Thiago Moreira</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 95544-1144</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 2 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Camila Duarte</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 94433-5566</div><div class="card-extras"><span class="badge-extra badge-tag-blue">Visitou site</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time">há 3 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Eduardo Tavares</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 93322-6677</div><div class="card-extras"><span class="badge-extra badge-tag-green">Retorno</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 3 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Larissa Pinto</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 92211-7788</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 3 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 3 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Gabriel Vasconcelos</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 91100-8899</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Prioridade</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time">há 4 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Isabela Freitas</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 99988-2233</div><div class="card-extras"><span class="badge-extra badge-tag-pink">VIP</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 4 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Marcos Barbosa</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 98877-3344</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time"><span class="dot-alert"></span>há 5 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Renata Galvão</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 97766-4455</div><div class="card-extras"><span class="badge-extra badge-tag-blue">Novo</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 6 dias</span></div></div>
+      </div>
+    </div>
+
+    <!-- Col 2: Em contato (8 cards) -->
+    <div class="kanban-column col-contato">
+      <div class="column-header">
+        <div class="column-header-left">
+          <span class="col-dot"></span>
+          <span class="column-title">Em contato</span>
+          <span class="column-count">8</span>
+        </div>
+      </div>
+      <div class="column-cards">
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Pedro Santos</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 99988-7766</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Quente</span><span class="badge-extra badge-tag-blue">Fase 2</span><span class="badge-notes">📝 3 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 3 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Carla Mendes</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 98877-6655</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-extra badge-tag-green">Agendar</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 4 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Vinícius Rocha</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 96655-3322</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Follow-up</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 5 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Tatiana Lopes</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 95544-4411</div><div class="card-extras"><span class="badge-extra badge-tag-pink">Premium</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time"><span class="dot-alert"></span>há 5 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Henrique Faria</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 94433-5500</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 0 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time"><span class="dot-alert"></span>há 6 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Sabrina Castro</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 93322-6611</div><div class="card-extras"><span class="badge-extra badge-tag-blue">Interesse alto</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 6 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Diego Monteiro</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 92211-7722</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Urgente</span><span class="badge-notes">📝 4 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time"><span class="dot-alert"></span>há 7 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Aline Brandão</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 91100-8833</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-notes">📝 1 nota</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time"><span class="dot-alert"></span>há 8 dias</span></div></div>
+      </div>
+    </div>
+
+    <!-- Col 3: Qualificados (5 cards) -->
+    <div class="kanban-column col-qualificados">
+      <div class="column-header">
+        <div class="column-header-left">
+          <span class="col-dot"></span>
+          <span class="column-title">Qualificados</span>
+          <span class="column-count">5</span>
+        </div>
+      </div>
+      <div class="column-cards">
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Roberto Lima</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 97766-5544</div><div class="card-extras"><span class="badge-extra badge-tag-pink">Investidor</span><span class="badge-extra badge-tag-blue">Cobertura</span><span class="badge-notes">📝 5 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 6 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Juliana Alves</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 96655-4433</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Quente</span><span class="badge-extra badge-tag-green">Visita</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 2 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">André Magalhães</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 99887-2211</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-extra badge-tag-blue">Crédito OK</span><span class="badge-notes">📝 3 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 4 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Vanessa Coelho</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 98876-3322</div><div class="card-extras"><span class="badge-extra badge-tag-pink">VIP</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 5 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Rodrigo Siqueira</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 97765-4433</div><div class="card-extras"><span class="badge-extra badge-tag-amber">Negociando</span><span class="badge-notes">📝 4 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time"><span class="dot-alert"></span>há 7 dias</span></div></div>
+      </div>
+    </div>
+
+    <!-- Col 4: Proposta enviada (3 cards) -->
+    <div class="kanban-column col-proposta">
+      <div class="column-header">
+        <div class="column-header-left">
+          <span class="col-dot"></span>
+          <span class="column-title">Proposta enviada</span>
+          <span class="column-count">3</span>
+        </div>
+      </div>
+      <div class="column-cards">
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Fernando Souza</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 95544-3322</div><div class="card-extras"><span class="badge-extra badge-manual">Manual</span><span class="badge-extra badge-tag-amber">Negociando</span><span class="badge-notes">📝 4 notas</span></div><div class="lead-meta"><span class="lead-source">Manual</span><span class="lead-time">há 1 dia</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Beatriz Rocha</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 94433-2211</div><div class="card-extras"><span class="badge-extra badge-tag-pink">Premium</span><span class="badge-extra badge-tag-blue">3 Suítes</span><span class="badge-notes">📝 2 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time">há 4 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Gustavo Andrade</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 93322-1144</div><div class="card-extras"><span class="badge-extra badge-tag-green">Aprovado</span><span class="badge-notes">📝 3 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 6 dias</span></div></div>
+      </div>
+    </div>
+
+    <!-- Col 5: Fechado (2 cards) -->
+    <div class="kanban-column col-fechado">
+      <div class="column-header">
+        <div class="column-header-left">
+          <span class="col-dot"></span>
+          <span class="column-title">Fechado</span>
+          <span class="column-count">2</span>
+        </div>
+      </div>
+      <div class="column-cards">
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Carlos Eduardo</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(34) 93322-1100</div><div class="card-extras"><span class="badge-extra badge-tag-green">Assinado</span><span class="badge-extra badge-tag-amber">Financ.</span><span class="badge-notes">📝 7 notas</span></div><div class="lead-meta"><span class="lead-source">Facebook</span><span class="lead-time"><span class="dot-alert"></span>há 8 dias</span></div></div>
+        <div class="lead-card"><div class="card-grip"><div class="grip-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="card-top-row"><div class="lead-name">Mariana Teixeira</div><button class="card-menu-btn">...</button></div><div class="lead-phone">(11) 92211-3344</div><div class="card-extras"><span class="badge-extra badge-tag-green">Assinado</span><span class="badge-extra badge-tag-pink">Premium</span><span class="badge-notes">📝 5 notas</span></div><div class="lead-meta"><span class="lead-source">Instagram</span><span class="lead-time"><span class="dot-alert"></span>há 10 dias</span></div></div>
+      </div>
+    </div>
+
+  </div><!-- /kanban-board -->
+
+  <footer class="mockup-footer">
+    Mockup estático para aprovação visual.
+  </footer>
+</main>
+
+<script>
+function setMode(mode) {
+  const body = document.body;
+  const btnAtual = document.getElementById('btn-atual');
+  const btnReforma = document.getElementById('btn-reforma');
+  if (mode === 'atual') {
+    body.classList.add('modo-atual');
+    btnAtual.classList.add('active');
+    btnReforma.classList.remove('active');
+  } else {
+    body.classList.remove('modo-atual');
+    btnReforma.classList.add('active');
+    btnAtual.classList.remove('active');
+  }
+}
+
+function setTheme(theme) {
+  const body = document.body;
+  const btnLight = document.getElementById('btn-light');
+  const btnDark = document.getElementById('btn-dark');
+  if (theme === 'dark') {
+    body.classList.add('theme-dark');
+    btnDark.classList.add('active');
+    btnLight.classList.remove('active');
+  } else {
+    body.classList.remove('theme-dark');
+    btnLight.classList.add('active');
+    btnDark.classList.remove('active');
+  }
+}
+</script>
+
+</body>
+</html>

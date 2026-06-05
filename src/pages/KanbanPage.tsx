@@ -1,89 +1,31 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  closestCorners,
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core"
+﻿
+import { useCallback, useEffect, useRef, useState } from "react"
+import { closestCorners, DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Filter, GripVertical, MoreVertical, Plus, RotateCcw, X } from "lucide-react"
+import { Filter, MoreVertical, Plus, RotateCcw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import { formatDistanceToNow } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
-import FilterBar from "@/components/crm/FilterBar"
 import StatePanel from "@/components/crm/StatePanel"
 import { Button } from "@/components/ui/button"
-import StatusBadge from "@/components/crm/StatusBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import {
-  SelectContent,
-  SelectItem,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/useAuth"
-import {
-  fetchKanbanLeads,
-  fetchKanbanOrigins,
-  fetchLeadStages,
-  LEAD_SOURCE_TABLE,
-  LEAD_STATE_TABLE,
-  LEAD_TAGS_TABLE,
-  updateLeadState,
-} from "@/lib/crmLeads"
+import { fetchKanbanLeads, fetchKanbanOrigins, fetchLeadStages, LEAD_SOURCE_TABLE, LEAD_STATE_TABLE, updateLeadState } from "@/lib/crmLeads"
 import { logAuditEvent } from "@/lib/auditLogs"
 import { safeLogLeadActivity } from "@/lib/leadActivity"
 import { supabase } from "@/lib/supabase"
-import { formatSupabaseValue } from "@/lib/utils"
-import type { KanbanStage, Lead, LeadTag, Profile, Tag } from "@/types"
+import { cn, formatSupabaseValue } from "@/lib/utils"
+import type { KanbanStage, Lead, Profile } from "@/types"
 
-type KanbanLead = Pick<
-  Lead,
-  | "id"
-  | "nome_completo"
-  | "email"
-  | "telefone_contato"
-  | "horario_preferido"
-  | "status_conversa"
-  | "corretor_id"
-  | "created_at"
-  | "assumed_at"
-  | "outra_info"
-  | "origem"
-  | "campanha"
-  | "lead_entry_type"
-  | "stage_id"
-  | "arquivado"
-  | "ia_paused"
-  | "first_response_at"
-  | "last_interaction_at"
->
+type KanbanLead = Pick<Lead, | "id" | "nome_completo" | "email" | "telefone_contato" | "status_conversa" | "corretor_id" | "created_at" | "assumed_at" | "stage_id" | "arquivado" | "last_interaction_at" | "ia_paused" | "first_response_at" | "origem">
 
 type CorretorFilter = Pick<Profile, "id" | "nome" | "email">
 type CreationDateFilter = "all" | "today" | "7d" | "30d"
@@ -95,31 +37,17 @@ type StageMovePayload = {
 }
 
 function leadDisplayName(lead: KanbanLead) {
-  return lead.nome_completo || lead.email || lead.telefone_contato || "Lead sem identificação"
+  return lead.nome_completo || "Sem nome"
 }
 
-function normalizeOrigin(origin: string | null | undefined) {
-  return (origin || "").trim().toLowerCase()
-}
-
-function originBadgeClasses(origin: string | null | undefined) {
-  switch (normalizeOrigin(origin)) {
-    case "instagram":
-      return "border-pink-500/20 bg-pink-500/10 text-pink-700 dark:text-pink-300"
-      case "facebook":
-        return "crm-badge-brand"
-      case "google":
-        return "crm-badge-highlight"
-      case "direto":
-        return "crm-badge-brand"
-      default:
-        return "border-border/60 bg-muted/65 text-foreground"
-  }
-}
-
-function originBadgeLabel(origin: string | null | undefined) {
-  const normalized = normalizeOrigin(origin)
-  return normalized ? normalized[0].toUpperCase() + normalized.slice(1) : "Sem origem"
+function getStageTitleColor(stageName: string) {
+    const normalized = stageName.toLowerCase();
+    if (normalized.includes("novo")) return "text-[#2563eb] dark:text-[#818cf8]";
+    if (normalized.includes("contato")) return "text-[#0891b2] dark:text-[#38bdf8]";
+    if (normalized.includes("qualificado")) return "text-[#7c3aed] dark:text-[#c4b5fd]";
+    if (normalized.includes("proposta")) return "text-[#d97706] dark:text-[#fbbf24]";
+    if (normalized.includes("fechado")) return "text-[#059669] dark:text-[#34d399]";
+    return "text-text-sec";
 }
 
 function stageForLead(lead: KanbanLead, stages: KanbanStage[]) {
@@ -129,135 +57,48 @@ function stageForLead(lead: KanbanLead, stages: KanbanStage[]) {
       return matchedStage.id
     }
   }
-
   return stages[0]?.id ?? null
-}
-
-function isManualLead(lead: Pick<KanbanLead, "lead_entry_type">) {
-  return (lead.lead_entry_type ?? "").trim().toLowerCase() === "manual"
 }
 
 function LeadCardBody({
   lead,
-  tags,
-  stages,
-  movingLeadId,
-  onMoveStage,
-  onOpenDetails,
   onRequestRedistribution,
 }: {
   lead: KanbanLead
-  tags: Tag[]
-  stages: KanbanStage[]
-  movingLeadId: string | null
-  onMoveStage: (lead: KanbanLead, stageId: string) => void
-  onOpenDetails: (leadId: string) => void
   onRequestRedistribution: (lead: KanbanLead) => void
 }) {
-  const stageOptions = useMemo(
-    () => stages.map((option) => ({ ...option, label: option.nome })),
-    [stages]
-  )
-
+  const time = lead.last_interaction_at || lead.created_at;
   return (
     <>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
-            <CardTitle className="truncate text-[15px] font-semibold text-foreground">
+      <CardHeader className="flex-row items-start justify-between p-4">
+          <div className="min-w-0 flex-1 space-y-1">
+            <CardTitle className="truncate text-sm font-semibold text-text-main">
               {leadDisplayName(lead)}
             </CardTitle>
-            <p className="text-xs text-muted-foreground">{formatSupabaseValue(lead.telefone_contato)}</p>
-            <div className="flex flex-wrap gap-2">
-              {isManualLead(lead) ? (
-                <StatusBadge tone="primary" className="h-6 px-2.5 text-[11px] font-medium">
-                  Manual
-                </StatusBadge>
-              ) : null}
-              {lead.origem ? (
-                <StatusBadge
-                  tone="outline"
-                  className={`h-6 rounded-full px-2.5 text-[11px] font-medium ${originBadgeClasses(lead.origem)}`}
-                >
-                  {originBadgeLabel(lead.origem)}
-                </StatusBadge>
-              ) : null}
-            </div>
+            <p className="text-xs text-text-sec">{formatSupabaseValue(lead.telefone_contato)}</p>
+            {lead.origem ? (
+              <p className="truncate text-xs text-text-tert">{lead.origem}</p>
+            ) : null}
           </div>
-
-          <div className="flex items-center gap-1">
-            <div className="hidden cursor-grab rounded-xl border border-border/60 bg-background/80 p-2 text-muted-foreground md:flex">
-              <GripVertical className="h-4 w-4" />
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="rounded-xl">
-                  <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Abrir ações do lead</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 rounded-md">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Abrir ações do lead</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => onOpenDetails(lead.id)}>Abrir lead</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => onRequestRedistribution(lead)}>
-                  <RotateCcw className="h-4 w-4" />
-                  Voltar para a fila
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => onRequestRedistribution(lead)}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Voltar para a fila
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
       </CardHeader>
 
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="flex min-h-6 flex-wrap gap-2">
-          {tags.map((tag) => (
-            <span
-              key={tag.id}
-              className="rounded-full px-2 py-1 text-xs font-medium"
-              style={{
-                backgroundColor: `${tag.cor}22`,
-                color: tag.cor || "#334155",
-              }}
-            >
-              {tag.nome}
-            </span>
-          ))}
-        </div>
-
-        <div className="space-y-2 overflow-visible md:hidden">
-          <Label htmlFor={`move-stage-${lead.id}`}>Mover para etapa</Label>
-          <SelectRoot value={stageForLead(lead, stages) ?? ""} onValueChange={(value) => onMoveStage(lead, value)}>
-            <SelectTrigger
-              id={`move-stage-${lead.id}`}
-              className="min-h-12"
-              disabled={movingLeadId === lead.id}
-            >
-              <SelectValue placeholder="Selecione uma etapa" />
-            </SelectTrigger>
-            <SelectContent position="popper" side="bottom" align="start" sideOffset={8}>
-              {stageOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </SelectRoot>
-          <p className="text-xs text-muted-foreground">
-            {movingLeadId === lead.id ? "Atualizando etapa..." : "Selecione em qual etapa esse lead está agora."}
-          </p>
-        </div>
-
-        <div className="mt-auto">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-9 w-full rounded-full"
-            onClick={() => onOpenDetails(lead.id)}
-          >
-            Abrir lead
-          </Button>
+      <CardContent className="flex flex-1 items-end p-4 pt-0">
+        <div className="mt-auto text-xs text-text-tert">
+            {time ? formatDistanceToNow(new Date(time), { addSuffix: true, locale: ptBR }) : ""}
         </div>
       </CardContent>
     </>
@@ -266,20 +107,12 @@ function LeadCardBody({
 
 function DraggableLeadCard({
   lead,
-  tags,
-  stages,
-  movingLeadId,
   isDesktop,
-  onMoveStage,
   onOpenDetails,
   onRequestRedistribution,
 }: {
   lead: KanbanLead
-  tags: Tag[]
-  stages: KanbanStage[]
-  movingLeadId: string | null
   isDesktop: boolean
-  onMoveStage: (lead: KanbanLead, stageId: string) => void
   onOpenDetails: (leadId: string) => void
   onRequestRedistribution: (lead: KanbanLead) => void
 }) {
@@ -289,7 +122,7 @@ function DraggableLeadCard({
       type: "lead",
       leadId: lead.id,
     },
-    disabled: !isDesktop || movingLeadId === lead.id,
+    disabled: !isDesktop,
   })
 
   return (
@@ -299,18 +132,14 @@ function DraggableLeadCard({
         transform: transform ? CSS.Translate.toString(transform) : undefined,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="flex min-h-[176px] rounded-[1.5rem] border border-border/60 bg-card shadow-sm transition-shadow data-[dragging=true]:shadow-lg"
+      className="group/card cursor-pointer rounded-lg border bg-card shadow-sm transition-all hover:shadow-md data-[dragging=true]:shadow-lg dark:border-border"
       data-dragging={isDragging}
+      onClick={() => onOpenDetails(lead.id)}
       {...attributes}
       {...listeners}
     >
       <LeadCardBody
         lead={lead}
-        tags={tags}
-        stages={stages}
-        movingLeadId={movingLeadId}
-        onMoveStage={onMoveStage}
-        onOpenDetails={onOpenDetails}
         onRequestRedistribution={onRequestRedistribution}
       />
     </Card>
@@ -339,25 +168,24 @@ function DroppableStageColumn({
   return (
     <div
       ref={setNodeRef}
-      className={[
-        "grid h-full min-h-[28rem] min-w-[300px] shrink-0 self-stretch grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-[1.75rem] border bg-card/80 shadow-sm backdrop-blur transition-colors md:min-h-0 md:w-[300px] xl:w-[320px]",
-        isOver ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60",
-      ].join(" ")}
+      className={cn(
+        "grid h-full min-h-[28rem] w-[280px] shrink-0 grid-rows-[auto_minmax(0,1fr)] self-stretch overflow-hidden rounded-xl border bg-card transition-colors md:min-h-0 xl:w-[300px]",
+        isOver && "border-primary",
+      )}
     >
-      <div className="sticky top-0 z-10 border-b border-border/60 bg-card/95 px-4 py-4 backdrop-blur">
+      <div className="border-b border-border px-3 py-2.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: stage.cor || "#64748b" }} />
-            <h2 className="font-semibold text-foreground">{stage.nome}</h2>
+            <h2 className={cn("text-xs font-semibold uppercase tracking-wider", getStageTitleColor(stage.nome))}>{stage.nome}</h2>
           </div>
-          <span className="rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs text-muted-foreground">
+          <span className="rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground">
             {leadCount}
           </span>
         </div>
       </div>
 
-      <div className="min-h-0 overflow-y-auto overscroll-y-contain p-3">
-        <div className="space-y-3">{children}</div>
+      <div className="min-h-0 overflow-y-auto overscroll-y-contain bg-muted p-2">
+        <div className="space-y-2">{children}</div>
       </div>
     </div>
   )
@@ -370,7 +198,6 @@ export default function KanbanPage() {
   const [stages, setStages] = useState<KanbanStage[]>([])
   const [leads, setLeads] = useState<KanbanLead[]>([])
   const [brokers, setBrokers] = useState<CorretorFilter[]>([])
-  const [tagsByLeadId, setTagsByLeadId] = useState<Record<string, Tag[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [movingLeadId, setMovingLeadId] = useState<string | null>(null)
@@ -441,58 +268,8 @@ export default function KanbanPage() {
       setBrokers(isAdmin ? ((brokersResult?.data ?? []) as CorretorFilter[]) : [])
       setOriginOptions(nextOrigins.sort((left, right) => left.localeCompare(right, "pt-BR")))
 
-      const leadIds = nextLeads.map((lead) => lead.id)
-      if (leadIds.length === 0) {
-        setTagsByLeadId({})
-        setError("")
-        return
-      }
-
-      const { data: leadTagsData, error: leadTagsError } = await supabase
-        .from(LEAD_TAGS_TABLE)
-        .select("lead_id,tag_id")
-        .in("lead_id", leadIds)
-
-      if (leadTagsError) {
-        throw leadTagsError
-      }
-
-      const leadTags = (leadTagsData ?? []) as LeadTag[]
-      const tagIds = [...new Set(leadTags.map((item) => item.tag_id))]
-
-      if (tagIds.length === 0) {
-        setTagsByLeadId({})
-        setError("")
-        return
-      }
-
-      const { data: tagsData, error: tagsError } = await supabase
-        .from("tags")
-        .select("id,nome,cor,created_by")
-        .in("id", tagIds)
-
-      if (tagsError) {
-        throw tagsError
-      }
-
-      const tags = (tagsData ?? []) as Tag[]
-      const tagsMap = new Map(tags.map((tag) => [tag.id, tag]))
-      const nextTagsByLeadId: Record<string, Tag[]> = {}
-
-      leadTags.forEach((leadTag) => {
-        const tag = tagsMap.get(leadTag.tag_id)
-        if (!tag) {
-          return
-        }
-
-        nextTagsByLeadId[leadTag.lead_id] ??= []
-        nextTagsByLeadId[leadTag.lead_id].push(tag)
-      })
-
-      setTagsByLeadId(nextTagsByLeadId)
       setError("")
-    } catch (loadError) {
-      console.error("Erro ao carregar kanban:", loadError)
+    } catch {
       setError("Não conseguimos carregar os leads agora.")
     } finally {
       setLoading(false)
@@ -739,72 +516,69 @@ export default function KanbanPage() {
   }
 
   const filterFields = (
-    <div className={`grid gap-4 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+    <>
       {isAdmin ? (
-        <div className="space-y-2">
-          <Label htmlFor="kanban-corretor-filter">Vendedor</Label>
-          <SelectRoot value={adminBrokerFilter || "all"} onValueChange={(value) => setAdminBrokerFilter(value === "all" ? "" : value)}>
-            <SelectTrigger id="kanban-corretor-filter" className="min-h-11 rounded-2xl bg-background/80">
-              <SelectValue placeholder="Todos os vendedores" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os vendedores</SelectItem>
-              {brokers.map((broker) => (
-                <SelectItem key={broker.id} value={broker.id}>
-                  {broker.nome || broker.email || "Vendedor sem nome"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </SelectRoot>
-        </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <Label htmlFor="kanban-created-filter">Data de criação</Label>
-        <SelectRoot value={creationDateFilter} onValueChange={(value) => setCreationDateFilter(value as CreationDateFilter)}>
-          <SelectTrigger id="kanban-created-filter" className="min-h-11 rounded-2xl bg-background/80">
-            <SelectValue placeholder="Todas as datas" />
+        <SelectRoot
+          value={adminBrokerFilter || "all"}
+          onValueChange={(value) => setAdminBrokerFilter(value === "all" ? "" : value)}
+        >
+          <SelectTrigger id="kanban-corretor-filter" className="h-9 w-[180px] rounded-lg">
+            <SelectValue placeholder="Todos os vendedores" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="today">Hoje</SelectItem>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="all">Todos</SelectItem>
-          </SelectContent>
-        </SelectRoot>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="kanban-ia-filter">Status da IA</Label>
-        <SelectRoot value={iaStatusFilter} onValueChange={(value) => setIaStatusFilter(value as IAStatusFilter)}>
-          <SelectTrigger id="kanban-ia-filter" className="min-h-11 rounded-2xl bg-background/80">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Ativa</SelectItem>
-            <SelectItem value="paused">Pausada</SelectItem>
-            <SelectItem value="all">Todos</SelectItem>
-          </SelectContent>
-        </SelectRoot>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="kanban-origin-filter">Origem</Label>
-        <SelectRoot value={originFilter} onValueChange={setOriginFilter}>
-          <SelectTrigger id="kanban-origin-filter" className="min-h-11 rounded-2xl bg-background/80">
-            <SelectValue placeholder="Todas as origens" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {originOptions.map((origin) => (
-              <SelectItem key={origin} value={origin}>
-                {origin}
+            <SelectItem value="all">Todos os vendedores</SelectItem>
+            {brokers.map((broker) => (
+              <SelectItem key={broker.id} value={broker.id}>
+                {broker.nome || broker.email || "Vendedor sem nome"}
               </SelectItem>
             ))}
           </SelectContent>
         </SelectRoot>
-      </div>
-    </div>
+      ) : null}
+
+      <SelectRoot
+        value={creationDateFilter}
+        onValueChange={(value) => setCreationDateFilter(value as CreationDateFilter)}
+      >
+        <SelectTrigger id="kanban-created-filter" className="h-9 w-[150px] rounded-lg">
+          <SelectValue placeholder="Todas as datas" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="today">Hoje</SelectItem>
+          <SelectItem value="7d">Últimos 7 dias</SelectItem>
+          <SelectItem value="30d">Últimos 30 dias</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
+        </SelectContent>
+      </SelectRoot>
+
+      <SelectRoot
+        value={iaStatusFilter}
+        onValueChange={(value) => setIaStatusFilter(value as IAStatusFilter)}
+      >
+        <SelectTrigger id="kanban-ia-filter" className="h-9 w-[140px] rounded-lg">
+          <SelectValue placeholder="Status IA" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos</SelectItem>
+          <SelectItem value="active">IA ativa</SelectItem>
+          <SelectItem value="paused">IA pausada</SelectItem>
+        </SelectContent>
+      </SelectRoot>
+
+      <SelectRoot value={originFilter} onValueChange={setOriginFilter}>
+        <SelectTrigger id="kanban-origin-filter" className="h-9 w-[150px] rounded-lg">
+          <SelectValue placeholder="Todas as origens" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas as origens</SelectItem>
+          {originOptions.map((origin) => (
+            <SelectItem key={origin} value={origin}>
+              {origin}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </SelectRoot>
+    </>
   )
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -849,71 +623,48 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">Meus leads</h1>
-            <StatusBadge tone="accent" className="h-7 px-3 text-xs font-medium">
-              Acompanhamento dos leads
-            </StatusBadge>
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm text-muted-foreground">
-              <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em]">Leads em atendimento</span>
-              <span className="text-sm font-semibold text-foreground">{leads.length}</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              className="h-10 rounded-full px-4"
-              onClick={() => navigate("/leads/novo")}
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar lead manual
-            </Button>
-            {hasActiveFilters ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-9 rounded-full px-3 text-muted-foreground"
-                onClick={clearFilters}
-              >
-                <X className="h-4 w-4" />
-                Limpar filtros
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="hidden md:block">
-          <FilterBar
-            title="Filtros operacionais"
-            description="Refine a carteira por vendedor, data, status da IA e origem."
-            actions={
-              hasActiveFilters ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-9 rounded-full px-3 text-muted-foreground"
-                  onClick={clearFilters}
-                >
-                  <X className="h-4 w-4" />
-                  Limpar filtros
-                </Button>
-              ) : null
-            }
-            className="bg-background/72 shadow-none"
-          >
-            {filterFields}
-          </FilterBar>
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4 lg:p-6">
+      {/* Linha 1: título + botão */}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">
+          Meu Kanban
+        </h1>
+        <Button type="button" onClick={() => navigate("/leads/novo")}>
+          <Plus className="-ml-1 mr-2 h-4 w-4" />
+          Novo Lead
+        </Button>
       </div>
 
+      {/* Linha 2: filtros inline (desktop) */}
+      <div className="hidden items-center gap-2 md:flex">
+        {filterFields}
+        {hasActiveFilters ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 rounded-lg px-3 text-muted-foreground hover:text-foreground"
+            onClick={clearFilters}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Limpar
+          </Button>
+        ) : null}
+      </div>
+
+      {/* Filtros mobile */}
       <div className="md:hidden">
-        <Button type="button" variant="outline" className="h-12 w-full rounded-full" onClick={() => setMobileFiltersOpen(true)}>
-          <Filter className="h-4 w-4" />
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => setMobileFiltersOpen(true)}
+        >
+          <Filter className="-ml-1 mr-2 h-4 w-4" />
           Filtros
-          {hasActiveFilters ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">ativos</span> : null}
+          {hasActiveFilters ? (
+            <span className="ml-2 h-2 w-2 rounded-full bg-primary" />
+          ) : null}
         </Button>
       </div>
 
@@ -923,7 +674,7 @@ export default function KanbanPage() {
 
       {!loading && stages.length === 0 ? (
         <StatePanel tone="warning" centered={false}>
-          Nenhuma etapa cadastrada em `kanban_stages`.
+          Nenhuma etapa configurada. Contate o administrador do sistema.
         </StatePanel>
       ) : null}
 
@@ -947,7 +698,7 @@ export default function KanbanPage() {
               onDragCancel={handleDragCancel}
             >
               <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden">
-                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 px-1">
+                <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 px-1 pb-4">
                   {stages.map((stage) => {
                     const stageLeads = leads.filter((lead) => stageForLead(lead, stages) === stage.id)
 
@@ -968,13 +719,9 @@ export default function KanbanPage() {
                             <DraggableLeadCard
                               key={lead.id}
                               lead={lead}
-                              tags={tagsByLeadId[lead.id] ?? []}
-                              stages={stages}
-                              movingLeadId={movingLeadId}
                               isDesktop={isDesktop}
-                              onMoveStage={moveLeadToStage}
                               onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
-                              onRequestRedistribution={setPendingRedistribution}
+                              onRequestRedistribution={() => setPendingRedistribution(lead)}
                             />
                           ))}
                         </SortableContext>
@@ -986,16 +733,11 @@ export default function KanbanPage() {
 
               <DragOverlay>
                 {activeLead ? (
-                  <div className="w-[320px] rotate-[1.5deg] opacity-95 xl:w-[340px]">
+                  <div className="w-[min(300px,85vw)] rotate-[1.5deg] opacity-95 xl:w-[320px]">
                     <Card className="border border-primary/40 bg-card shadow-2xl">
                       <LeadCardBody
                         lead={activeLead}
-                        tags={tagsByLeadId[activeLead.id] ?? []}
-                        stages={stages}
-                        movingLeadId={movingLeadId}
-                        onMoveStage={moveLeadToStage}
-                        onOpenDetails={(leadId) => navigate(`/leads/${leadId}`)}
-                        onRequestRedistribution={setPendingRedistribution}
+                        onRequestRedistribution={() => setPendingRedistribution(activeLead)}
                       />
                     </Card>
                   </div>
@@ -1021,14 +763,12 @@ export default function KanbanPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-12 rounded-full"
               onClick={() => setPendingRedistribution(null)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              className="h-12 rounded-full"
               disabled={!pendingRedistribution || redistributeLeadMutation.isPending}
               onClick={() =>
                 pendingRedistribution ? void redistributeLeadMutation.mutateAsync(pendingRedistribution) : undefined
@@ -1041,7 +781,7 @@ export default function KanbanPage() {
       </Dialog>
 
       <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <SheetContent side="bottom" className="rounded-t-[2rem] md:hidden">
+        <SheetContent side="bottom" className="rounded-t-lg md:hidden">
           <SheetHeader className="pr-10">
             <SheetTitle>Filtrar meus leads</SheetTitle>
             <SheetDescription>Use os filtros para encontrar os leads mais rápido.</SheetDescription>
@@ -1049,7 +789,7 @@ export default function KanbanPage() {
           <div className="space-y-4 pt-4">
             {filterFields}
             {hasActiveFilters ? (
-              <Button type="button" variant="outline" className="h-12 w-full rounded-full" onClick={clearFilters}>
+              <Button type="button" variant="outline" onClick={clearFilters}>
                 Limpar filtros
               </Button>
             ) : null}
@@ -1059,4 +799,3 @@ export default function KanbanPage() {
     </div>
   )
 }
-
